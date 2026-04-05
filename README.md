@@ -2,8 +2,6 @@
 
 **Tiny decoder LMs + LoRA for efficient, explainable hate speech detection** on [DynaHate](https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset) and [HateCheck](https://github.com/paul-rottger/hatecheck-data).
 
-[![CI](https://github.com/EmaRimoldi/HateLens/actions/workflows/ci.yml/badge.svg)](https://github.com/EmaRimoldi/HateLens/actions/workflows/ci.yml)
-
 ## Why this matters
 
 Moderation and research systems need models that are **small enough to deploy**, **fine-tunable on modest GPUs**, and **inspectable** when a decision is contested. HateLens keeps that entire loop in one repo: PEFT fine-tuning, correct loading of **adapter checkpoints**, fast **batched evaluation**, optional **LIME** word attributions, and a **HateCheck functionality breakdown** so failures line up with the benchmark’s functional test types.

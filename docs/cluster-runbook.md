@@ -2,6 +2,8 @@
 
 Patterns are aligned with the **agent_swarms** / autoresearch style: one SLURM job per training run, explicit working directory, logs under `logs/`.
 
+**GitHub Actions:** the workflow lives at `docs/github-actions-ci.yml` until you copy it to `.github/workflows/ci.yml` (PAT pushes without the `workflow` scope are rejected for workflow files).
+
 ## Prerequisites
 
 - Clone repo; `cd` into it.

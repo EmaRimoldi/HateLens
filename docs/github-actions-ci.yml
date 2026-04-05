@@ -1,3 +1,6 @@
+# Copy to .github/workflows/ci.yml when pushing with a token that has the `workflow` scope
+# (or add via GitHub web UI). GitHub rejects PAT pushes that create workflow files without it.
+
 name: CI
 
 on:
