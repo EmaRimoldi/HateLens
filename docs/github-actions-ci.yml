@@ -1,0 +1,25 @@
+# Copy to .github/workflows/ci.yml when pushing with a token that has the `workflow` scope
+# (or add via GitHub web UI). GitHub rejects PAT pushes that create workflow files without it.
+
+name: CI
+
+on:
+  push:
+    branches: [main, "refactor/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - name: Sync
+        run: uv sync --extra dev --extra lime
+      - name: Ruff
+        run: uv run ruff check src tests
+      - name: Pytest
+        run: uv run pytest tests/ -q

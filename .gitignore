@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Tools
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Experiment outputs (keep structure optional)
+# experiments/*/checkpoints/
+# experiments/*/logs/
+
+# W&B
+wandb/
+
+# Results pickles (large); keep CSV summaries in git if desired
+results/*.pkl
