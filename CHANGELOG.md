@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 — 2026-04-05
+
+### Changed (repository layout)
+
+- **Removed** committed experiment artifacts: `results/`, `checkpoints/`, and old `experiments/` YAML tree.
+- **Configs** live under `configs/models/*.yaml` (TinyLlama, Phi-2, OPT).
+- **All generated files** go under `outputs/` (`runs/`, `logs/`, `eval/`, `lime/`) — gitignored except `outputs/.gitkeep`.
+- **Scripts**: `scripts/train_*.sh`, `scripts/slurm/train.sh`, legacy Python entrypoints under `scripts/`.
+- **Notebook**: `notebooks/plot_lime_barplots.ipynb` (paths aligned with `outputs/lime/`).
+- **Default adapter paths** for eval/LIME: `outputs/runs/tinyllama/<dataset>/best_checkpoint` (override with env or `--adapter`).
+- **Training** appends `--dataset` to `output_dir` and `logging_dir` so one YAML serves both DynaHate and HateCheck.
+
+### Added
+
+- `hatelens.paths.outputs_dir`; CLI flags `--adapter`, `--eval-output` where relevant.
+
 ## 0.2.0 — 2026-04-05
 
 ### Added

@@ -1,6 +1,6 @@
 # Cluster runbook
 
-Patterns are aligned with the **agent_swarms** / autoresearch style: one SLURM job per training run, explicit working directory, logs under `logs/`.
+Patterns are aligned with the **agent_swarms** / autoresearch style: one SLURM job per training run, explicit working directory, logs under `outputs/logs/`.
 
 **GitHub Actions:** the workflow lives at `docs/github-actions-ci.yml` until you copy it to `.github/workflows/ci.yml` (PAT pushes without the `workflow` scope are rejected for workflow files).
 
@@ -21,20 +21,20 @@ export HF_TOKEN=...   # if your site requires authenticated pulls
 
 ## One-shot GPU job
 
-Edit `#SBATCH` headers in `cluster/sbatch_train.sh` for **partition**, **GPU GRES**, **time**, and **memory** at your center.
+Edit `#SBATCH` headers in `scripts/slurm/train.sh` for **partition**, **GPU GRES**, **time**, and **memory** at your center.
 
 ```bash
-mkdir -p logs
-sbatch cluster/sbatch_train.sh dynahate experiments/TinyLlama/config.yaml
+mkdir -p outputs/logs
+sbatch scripts/slurm/train.sh dynahate configs/models/tinyllama.yaml
 # or
-sbatch cluster/sbatch_train.sh hatecheck experiments/TinyLlama/config.yaml
+sbatch scripts/slurm/train.sh hatecheck configs/models/tinyllama.yaml
 ```
 
 Monitor:
 
 ```bash
 squeue -u "$USER"
-tail -f logs/slurm-<jobid>.out
+tail -f outputs/logs/slurm-<jobid>.out
 ```
 
 ## Weights & Biases (optional)

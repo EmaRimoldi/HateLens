@@ -17,3 +17,8 @@ def repo_root() -> Path:
 
 def data_dir() -> Path:
     return repo_root() / "data"
+
+
+def outputs_dir() -> Path:
+    """Root for all generated artifacts (eval, LIME pickles, training runs)."""
+    return repo_root() / "outputs"

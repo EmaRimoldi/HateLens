@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-compute_lime_scores.py
+Legacy standalone LIME script for HateCheck.
 
-This script computes signed LIME word weights for hate speech classification
-before and after fine-tuning, and saves the results as pickle files.
-Supports CUDA, MPS (Mac), and CPU devices.
+Prefer: ``uv run hatelens lime --hatecheck`` (writes under ``outputs/lime/``).
 """
 
 import os
@@ -36,9 +34,13 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 warnings.filterwarnings("ignore")
 
-RESULTS_DIR = "./results"
-MODEL_CHECKPOINT_PRE = "PY007/TinyLlama-1.1B-step-50K-105b"
-MODEL_CHECKPOINT_POST = "./checkpoints/TinyLlama/hatecheck/best_checkpoint_33"
+RESULTS_DIR = os.environ.get("HATELENS_LIME_DIR", "outputs/lime")
+MODEL_CHECKPOINT_PRE = os.environ.get(
+    "HATELENS_BASE_MODEL", "PY007/TinyLlama-1.1B-step-50K-105b"
+)
+MODEL_CHECKPOINT_POST = os.environ.get(
+    "HATELENS_CKPT_HATECHECK", "outputs/runs/tinyllama/hatecheck/best_checkpoint"
+)
 CLASS_NAMES = ["nothate", "hate"]
 
 # ------------------------------------------------------------------------------

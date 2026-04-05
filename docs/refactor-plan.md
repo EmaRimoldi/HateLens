@@ -9,4 +9,4 @@ Execution branch: `refactor/professional-v2`.
 5. **Ops** — SLURM template mirroring `agent_swarms` one-shot job style; docs runbook.
 6. **Docs** — README, architecture, related work, changelog.
 
-See `CHANGELOG.md` and `docs/repo-audit.md` for outcomes.
+See `CHANGELOG.md` (v0.3.0 layout) and `docs/repo-audit.md` for outcomes.

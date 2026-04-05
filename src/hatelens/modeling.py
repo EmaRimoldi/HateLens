@@ -83,19 +83,21 @@ def load_sequence_classifier(
 
 
 def default_checkpoints() -> dict[str, dict[str, str]]:
-    """Built-in paths matching the original repository layout (override with env if needed)."""
+    """
+    Default base model (hub id) and post-LoRA adapter directories.
+
+    After training with ``configs/models/tinyllama.yaml``, adapters are saved under
+    ``outputs/runs/tinyllama/<dataset>/best_checkpoint``. Override with
+    ``HATELENS_CKPT_DYNAHATE`` / ``HATELENS_CKPT_HATECHECK`` or CLI ``--adapter``.
+    """
     root = repo_root()
     base = os.environ.get("HATELENS_BASE_MODEL", "PY007/TinyLlama-1.1B-step-50K-105b")
+    default_dyna = root / "outputs/runs/tinyllama/dynahate/best_checkpoint"
+    default_hate = root / "outputs/runs/tinyllama/hatecheck/best_checkpoint"
     return {
         "base": {"id": base},
         "post": {
-            "dynahate": os.environ.get(
-                "HATELENS_CKPT_DYNAHATE",
-                str(root / "checkpoints/TinyLlama/dynahate/best_checkpoint_42"),
-            ),
-            "hatecheck": os.environ.get(
-                "HATELENS_CKPT_HATECHECK",
-                str(root / "checkpoints/TinyLlama/hatecheck/best_checkpoint_33"),
-            ),
+            "dynahate": os.environ.get("HATELENS_CKPT_DYNAHATE", str(default_dyna)),
+            "hatecheck": os.environ.get("HATELENS_CKPT_HATECHECK", str(default_hate)),
         },
     }
