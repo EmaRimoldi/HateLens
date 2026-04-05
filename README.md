@@ -1,132 +1,75 @@
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![PyTorch](https://img.shields.io/badge/pytorch-%EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
-![Hugging Face](https://img.shields.io/badge/Hugging%20Face-FF6A00?style=for-the-badge&logo=huggingface&logoColor=white)
-![Pandas](https://img.shields.io/badge/pandas-%23150458?style=for-the-badge&logo=pandas&logoColor=white)
+# HateLens
 
+**Tiny decoder LMs + LoRA for efficient, explainable hate speech detection** on [DynaHate](https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset) and [HateCheck](https://github.com/paul-rottger/hatecheck-data).
 
+[![CI](https://github.com/EmaRimoldi/HateLens/actions/workflows/ci.yml/badge.svg)](https://github.com/EmaRimoldi/HateLens/actions/workflows/ci.yml)
 
-# HateLens: Tiny LLMs for Efficient & Interpretable Hate Speech Detection
+## Why this matters
 
-## 👥 Group 48
-| Student's name | SCIPER |
-| -------------- | ------ |
+Moderation and research systems need models that are **small enough to deploy**, **fine-tunable on modest GPUs**, and **inspectable** when a decision is contested. HateLens keeps that entire loop in one repo: PEFT fine-tuning, correct loading of **adapter checkpoints**, fast **batched evaluation**, optional **LIME** word attributions, and a **HateCheck functionality breakdown** so failures line up with the benchmark’s functional test types.
+
+## Install
+
+Requires **Python 3.10+**. Recommended: [uv](https://docs.astral.sh/uv/).
+
+```bash
+git clone https://github.com/EmaRimoldi/HateLens.git
+cd HateLens
+uv sync                    # core
+uv sync --extra lime       # + LIME explainability
+uv sync --extra wandb      # + Weights & Biases (training logs)
+```
+
+Legacy `pip install -r requirements.txt` remains possible for older workflows; new development targets `pyproject.toml`.
+
+## Quick start
+
+```bash
+# Metrics on test split (downloads TinyLlama base from Hugging Face if not cached)
+uv run hatelens evaluate --hatecheck --batch-size 16
+uv run hatelens evaluate --dynahate --batch-size 16 --plots
+
+# HateCheck: per-functionality accuracy/F1 (uses bundled adapter + metadata)
+uv run hatelens diagnose-hatecheck --batch-size 16
+
+# LoRA training (W&B only if WANDB_ENABLED=1)
+uv run hatelens train experiments/TinyLlama/config.yaml --dataset dynahate
+./run_training_hatecheck.sh experiments/TinyLlama/config.yaml
+
+# LIME (optional extra)
+uv run hatelens lime --hatecheck
+```
+
+Set `HATELENS_ROOT` if you run commands outside the repo tree.
+
+## Project layout
+
+| Path | Purpose |
+|------|---------|
+| `src/hatelens/` | Library + CLI |
+| `data/` | DynaHate CSV + HateCheck splits |
+| `experiments/*/config.yaml` | LoRA + trainer hyperparameters |
+| `checkpoints/` | Example **LoRA adapters** (not full dense weights) |
+| `cluster/sbatch_train.sh` | SLURM template |
+| `docs/` | Architecture, audit, experiments, cluster runbook, related work |
+
+## Authors (original course project)
+
+| Name | SCIPER |
+|------|--------|
 | [Vittoria Meroni](https://github.com/vittoriameroni) | 386722 |
 | [Emanuele Rimoldi](https://github.com/EmaRimoldi) | 377013 |
 | [Simone Vicentini](https://github.com/SimoVice/) | 378204 |
 
+## Data citations
 
-## 🌍 Description
+- Vidgen et al., EMNLP 2021 — DynaHate.
+- Röttger et al., ACL 2021 — HateCheck.
 
-HateLens is a lightweight, transparent pipeline designed to detect and explain hate speech on social platforms. By combining the contextual power of decoder-only TinyLLMs with parameter-efficient fine-tuning and post-hoc explainability, HateLens strikes a balance between high accuracy and minimal computational overhead.
+## License
 
-Specifically, HateLens:
+Apache-2.0 (code). Dataset licenses remain **CC BY 4.0** per upstream publishers.
 
-- **Leverages TinyLLMs**: Fine-tunes compact, decoder-only language models via Low-Rank Adaptation (LoRA), updating less than 0.05% of parameters to keep memory footprint and inference time low.
-- **Ensures Interpretability**: Integrates Local Interpretable Model-agnostic Explanations (LIME) to provide token-level attributions both before and after adaptation, making every classification decision transparent.
-- **Delivers State-of-the-Art Performance**: On the DynaHate and HateCheck benchmarks, our best TinyLLM achieves over 80% accuracy on DynaHate and 99% on HateCheck, representing an improvement of more than 25% compared to its pre-adaptation baseline.
+## Safety note
 
-With HateLens, researchers and practitioners gain a fast, reliable, and explainable tool to curb the spread of hateful content without sacrificing efficiency or clarity. Perfect for deployment on edge devices, real-time moderation systems, and research environments where both performance and transparency matter.  
-
-## Data
-
-### 🧐 Dynahate
-
-The Dynamically Generated Hate Speech Dataset (DynaHate) [1] was selected for its broad coverage of diverse hate expressions and its balanced class distribution (54% hate, 46% not hate). This eliminates the need for oversampling or augmentation, improving training stability.
-
-DynaHate was developed through an iterative human-model co-annotation process, yielding over 41,000 synthetic samples labeled as hate or nothate. Each entry includes numerous metadata, such as the hate type (Animosity, Derogation, Dehumanization, Threatening, and Support for Hateful Entities) and target group. The dataset is licensed under CC-BY 4.0.
-
-
-🔗 Useful Links:
-- 📄 [Official Repository](https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset)
-  
-### 🕵️ Hatecheck
-
-The HateCheck suite [2] was chosen for its fine-grained, functional evaluation of hate speech models across 29 targeted tests and seven protected groups (women, trans people, gay people, Black people, disabled people, Muslims, immigrants). This allows for stable and diagnostic model assessments without the need for data augmentation or oversampling.
-
-HateCheck was constructed via expert-designed templates and manual case crafting to produce 3,901 candidate examples, of which 3,728 were retained after validation by five trained annotators. Each case is labeled as hateful or non-hateful and annotated with rich metadata. The dataset is released under a CC-BY 4.0 license.
-
-🔗 Useful Links:
-- 📄 [Official Repository](https://github.com/paul-rottger/hatecheck-data)
-
-
-📚 Citations:
-- [1] Vidgen, B., et al. (2021). Learning from Machines: Dataset Generation with Dynamic Human-Model Co-Annotation. Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing.
-- [2] Röttger, P., et al. (2021). HateCheck: Functional Tests for Hate Speech Detection Models. Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics.
-
-## 📦 Conda Env
-
-To run the provided Python scripts and notebooks and replicate our results, we recommend creating a dedicated Python environment (Python 3.9.10). To create the environment , you can use venv or conda. 
-Here is an example using venv:
-
-```bash
-Python 3.9.10 -m venv ee-559
-source ee-559/bin/activate 
-```
-
-Use the requirements.txt file provided in the repository:
-
-```bash
-pip install -r requirements.txt
-```
-Some packages might cause compatibility issues, depending on your system configuration. In particular, be aware of potential problems with:
--  `bitsandbites`
--  `NVIDIA CUDA-related packages`
--  `scipy==1.13.1`
-
-If you encounter issues during installation or runtime, try using the latest available versions of these packages.
-
-
-
-## 🧱 Project Structure
-
-```text
-ee-559-deep-learning/
-│
-├── data/                              # Raw & preprocessed datasets
-│   ├── dynahate/
-│   └── hatecheck/
-│
-├── experiments/                       # YAML configs for each model
-│   ├── TinyLlama/                     # LoRA & training hyperparameters
-│   │   └── config.yaml
-│   ├── phi-2/                         # LoRA & training hyperparameters
-│   │   └── config.yaml
-│   └── opt/                           # LoRA & training hyperparameters
-│       └── config.yaml
-│
-├── results/                           # Evaluation outputs & explainability scores
-│   ├── dynahate/                  
-│   └── hatecheck/
-│
-├── utils/                             # Helper modules & scripts
-│               
-├── requirements.txt                   # Python, PyTorch, Transformers, LoRA, LIME…
-│
-├── run_training_dynahate.sh           # Bash wrapper to train on DynaHate
-├── run_training_hatecheck.sh          # Bash wrapper to train on HateCheck
-│
-├── trainer_dynahate.py                # PyTorch Lightning trainer for DynaHate
-├── trainer_hatecheck.py               # PyTorch Lightning trainer for HateCheck
-│
-├── evaluate_models.py                 # Evaluate best model performances
-│
-└── compute_lime_scores.py             # Compute LIME scores displayed in results/      
-
-```
-
-## 🗂️ Folder Highlights
-
-- `data/` — Raw and preprocessed DynaHate & HateCheck datasets ready for training and evaluation.  
-- `experiments/` — YAML config files specifying LoRA & training hyperparameters for each model.  
-- `results/` —  
-  - `dynahate/`: Metrics plots, LIME scores barplots, for dynahate  
-  - `hatecheck/`: Metrics plots, LIME scores barplots, for dynahate  
-- `utils/` — Helper modules for text dataset creation, visualization, and common utilities.  
-
-- **Root‐level scripts**:  
-  - `run_training_dynahate.sh` & `run_training_hatecheck.sh`: launch dataset‐specific training.  
-  - `trainer_dynahate.py` & `trainer_hatecheck.py`: PyTorch Lightning training pipelines.  
-  - `evaluate_models.py`: evaluate best checkpoints on DynaHate or HateCheck. Use --<datasets_name> to select the dataset to evaluate.  
-  - `compute_lime_scores.py`: generate LIME explanations for selected models. Use --<dataset_name> to select the dataset on which to compute LIME scores.
-  - `requirements.txt` — Python, PyTorch, Transformers, LoRA, LIME and related dependencies.  
-
+This repository contains **real examples of hateful text** in datasets and model outputs. Handle logs and screenshots accordingly.
