@@ -9,7 +9,7 @@
 - **Unified training** pipeline with dataset flag (`hatelens train CONFIG --dataset dynahate|hatecheck`).
 - **Batched evaluation** and CSV exports (`hatelens evaluate`).
 - **HateCheck functionality breakdown** (`hatelens diagnose-hatecheck`).
-- `uv` + `pyproject.toml`, pytest suite, Ruff, GitHub Actions CI.
+- `uv` + `pyproject.toml`, pytest suite, Ruff; CI workflow template in `docs/github-actions-ci.yml` (copy to `.github/workflows/` when using a PAT with `workflow` scope).
 - Documentation: `docs/architecture.md`, `docs/repo-audit.md`, `docs/related-work.md`, `docs/cluster-runbook.md`, `docs/experiments.md`.
 - `cluster/sbatch_train.sh` SLURM template.
 
