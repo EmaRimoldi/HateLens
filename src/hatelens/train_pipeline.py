@@ -129,9 +129,11 @@ def run_training(config_path: Path, dataset: DatasetName, *, seed: int = 123) ->
     out_dir = Path(cfg["output_dir"])
     if not out_dir.is_absolute():
         out_dir = repo_root() / out_dir
+    out_dir = out_dir / dataset
     log_dir = Path(cfg["logging_dir"])
     if not log_dir.is_absolute():
         log_dir = repo_root() / log_dir
+    log_dir = log_dir / dataset
 
     use_fp16 = torch.cuda.is_available() and bool(cfg.get("fp16", True))
     grad_accum = int(cfg.get("gradient_accumulation_steps", 8 if dataset == "dynahate" else 2))
@@ -182,7 +184,11 @@ def run_training(config_path: Path, dataset: DatasetName, *, seed: int = 123) ->
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     p = argparse.ArgumentParser(description="HateLens LoRA fine-tuning")
-    p.add_argument("config_file", type=Path, help="YAML config (see experiments/*/config.yaml)")
+    p.add_argument(
+        "config_file",
+        type=Path,
+        help="YAML config path (default example: configs/models/tinyllama.yaml)",
+    )
     p.add_argument(
         "--dataset",
         choices=("dynahate", "hatecheck"),

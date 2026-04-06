@@ -7,6 +7,7 @@ import os
 import pickle
 import random
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -16,7 +17,7 @@ from tqdm import tqdm
 
 from hatelens.datasets import create_dynahate_dataset, create_hatecheck_dataset, data_dir
 from hatelens.modeling import CLASS_NAMES, default_checkpoints, load_sequence_classifier
-from hatelens.paths import repo_root
+from hatelens.paths import outputs_dir
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +76,12 @@ def run_lime_for_dataset(
     *,
     n_samples: int = 500,
     num_features: int = 10,
+    post_adapter_override: str | None = None,
 ) -> None:
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     ck = default_checkpoints()
     base_id = ck["base"]["id"]
-    post_path = ck["post"][dataset_name]
+    post_path = post_adapter_override or ck["post"][dataset_name]
 
     if dataset_name == "hatecheck":
         seed = 33
@@ -102,7 +104,7 @@ def run_lime_for_dataset(
     df_test = ds["test"].to_pandas()
     X_test = df_test[text_col]
     explainer = LimeTextExplainer(class_names=list(CLASS_NAMES))
-    results_root = repo_root() / "results"
+    results_root = outputs_dir() / "lime"
     results_root.mkdir(parents=True, exist_ok=True)
 
     logger.info("LIME pre-FT %s", dataset_name)
@@ -123,6 +125,10 @@ def run_lime_for_dataset(
         with open(results_root / name, "wb") as f:
             pickle.dump(data, f)
 
+    post_ck = Path(post_path)
+    if not post_ck.exists():
+        logger.warning("Post-FT adapter missing at %s — skipping post-FT LIME.", post_path)
+        return
     logger.info("LIME post-FT %s", dataset_name)
     model_post, tok_post = load_sequence_classifier(post_path, device=device)
     pos_post, neg_post = compute_lime_weights_signed(

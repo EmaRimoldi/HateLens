@@ -1,0 +1,23 @@
+# facebook/opt-1.3b + LoRA
+
+task_type: "SEQ_CLS"
+r: 2
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - "k_proj"
+  - "v_proj"
+
+output_dir: "outputs/runs/opt-1.3b"
+learning_rate: 0.001
+num_train_epochs: 3
+weight_decay: 0.01
+eval_strategy: "epoch"
+save_strategy: "epoch"
+load_best_model_at_end: true
+logging_dir: "outputs/logs/opt-1.3b"
+logging_steps: 100
+metric_for_best_model: "f1"
+seed: 123
+model_checkpoint: "facebook/opt-1.3b"
+model_name: "opt"

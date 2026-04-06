@@ -21,7 +21,7 @@ from hatelens.datasets import (
 from hatelens.diagnostics import hatecheck_functionality_report
 from hatelens.evaluation import classification_metrics, log_metrics, predict_batch
 from hatelens.modeling import default_checkpoints, load_sequence_classifier
-from hatelens.paths import repo_root
+from hatelens.paths import outputs_dir
 
 
 def _device() -> torch.device:
@@ -37,7 +37,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     name = "dynahate" if args.dynahate else "hatecheck"
     ck = default_checkpoints()
     base_id = ck["base"]["id"]
-    post_path = ck["post"][name]
+    post_path = args.adapter or ck["post"][name]
 
     if name == "dynahate":
         ds = create_dynahate_dataset(data_dir())
@@ -72,7 +72,8 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         log_metrics("post_ft", metrics_p)
         rows.append({"stage": "post_ft", **metrics_p})
 
-    out = repo_root() / "results" / name
+    eval_root = Path(args.eval_output).resolve() if args.eval_output else outputs_dir() / "eval"
+    out = eval_root / name
     out.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(out / "metrics_summary.csv", index=False)
     logging.info("Wrote %s", out / "metrics_summary.csv")
@@ -102,7 +103,12 @@ def _plot_simple_compare(pre: dict, post: dict, path: Path) -> None:
 
 def cmd_diagnose(args: argparse.Namespace) -> None:
     ck = default_checkpoints()
-    post_path = ck["post"]["hatecheck"]
+    post_path = args.adapter or ck["post"]["hatecheck"]
+    if not Path(post_path).exists():
+        raise SystemExit(
+            f"Adapter not found: {post_path}\n"
+            "Train first (hatelens train ...) or pass --adapter / set HATELENS_CKPT_HATECHECK."
+        )
     device = _device()
     ds = create_hatecheck_dataset_with_metadata(data_dir())
     df = ds["test"].to_pandas()
@@ -115,7 +121,8 @@ def cmd_diagnose(args: argparse.Namespace) -> None:
     log_metrics("hatecheck_test", overall)
 
     rep = hatecheck_functionality_report(df, preds)
-    out = repo_root() / "results" / "hatecheck"
+    eval_root = Path(args.eval_output).resolve() if args.eval_output else outputs_dir() / "eval"
+    out = eval_root / "hatecheck"
     out.mkdir(parents=True, exist_ok=True)
     csv_path = out / "functionality_breakdown.csv"
     rep.to_csv(csv_path, index=False)
@@ -130,7 +137,12 @@ def cmd_lime(args: argparse.Namespace) -> None:
             "LIME extras not installed. Run: pip install 'hatelens[lime]' or pip install lime"
         ) from e
     name = "dynahate" if args.dynahate else "hatecheck"
-    run_lime_for_dataset(name, n_samples=args.n_samples, num_features=args.num_features)
+    run_lime_for_dataset(
+        name,
+        n_samples=args.n_samples,
+        num_features=args.num_features,
+        post_adapter_override=args.adapter,
+    )
 
 
 def cmd_train(args: argparse.Namespace) -> None:
@@ -149,7 +161,23 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--dynahate", action="store_true")
     g.add_argument("--hatecheck", action="store_true")
     ev.add_argument("--batch-size", type=int, default=8)
-    ev.add_argument("--plots", action="store_true", help="Save a simple bar chart under results/")
+    ev.add_argument(
+        "--adapter",
+        type=str,
+        default=None,
+        help="Post-LoRA adapter dir (default: outputs/runs/tinyllama/<dataset>/best_checkpoint)",
+    )
+    ev.add_argument(
+        "--eval-output",
+        type=str,
+        default=None,
+        help="Root directory for metrics CSV/plots (default: outputs/eval)",
+    )
+    ev.add_argument(
+        "--plots",
+        action="store_true",
+        help="Save comparison_bar.png under the dataset subfolder",
+    )
     ev.set_defaults(func=cmd_evaluate)
 
     dg = sub.add_parser(
@@ -157,6 +185,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Per-functionality HateCheck table (requires fine-tuned checkpoint)",
     )
     dg.add_argument("--batch-size", type=int, default=8)
+    dg.add_argument(
+        "--adapter",
+        type=str,
+        default=None,
+        help="Post-LoRA adapter path (default: env or tinyllama hatecheck run)",
+    )
+    dg.add_argument(
+        "--eval-output",
+        type=str,
+        default=None,
+        help="Root for functionality_breakdown.csv (default: outputs/eval)",
+    )
     dg.set_defaults(func=cmd_diagnose)
 
     lm = sub.add_parser("lime", help="Signed LIME word weights (optional dependency)")
@@ -165,6 +205,7 @@ def build_parser() -> argparse.ArgumentParser:
     g2.add_argument("--hatecheck", action="store_true")
     lm.add_argument("--n-samples", type=int, default=500)
     lm.add_argument("--num-features", type=int, default=10)
+    lm.add_argument("--adapter", type=str, default=None, help="Override post-LoRA adapter path")
     lm.set_defaults(func=cmd_lime)
 
     tr = sub.add_parser("train", help="LoRA fine-tuning via Hugging Face Trainer")

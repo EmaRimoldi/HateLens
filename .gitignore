@@ -20,12 +20,15 @@ venv/
 # OS
 .DS_Store
 
-# Experiment outputs (keep structure optional)
-# experiments/*/checkpoints/
-# experiments/*/logs/
+# Generated experiment / eval artifacts (keep tree via outputs/.gitkeep only)
+outputs/*
+!outputs/.gitkeep
+
+# Optional: local checkpoints if copied outside outputs/
+checkpoints/
+
+# Legacy path (if recreated)
+results/
 
 # W&B
 wandb/
-
-# Results pickles (large); keep CSV summaries in git if desired
-results/*.pkl
