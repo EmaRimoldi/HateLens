@@ -15,6 +15,8 @@ def test_dynahate_splits():
     assert set(ds.keys()) == {"train", "validation", "test"}
     assert "text" in ds["train"].column_names
     assert "label" in ds["train"].column_names
+    assert "target" in ds["train"].column_names
+    assert "type" in ds["train"].column_names
     assert len(ds["test"]) > 0
 
 

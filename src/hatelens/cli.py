@@ -210,7 +210,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     tr = sub.add_parser("train", help="LoRA fine-tuning via Hugging Face Trainer")
     tr.add_argument("config", type=str, help="Path to config YAML")
-    tr.add_argument("--dataset", choices=("dynahate", "hatecheck"), required=True)
+    tr.add_argument(
+        "--dataset",
+        choices=(
+            "dynahate",
+            "hatecheck",
+            "hateeval",
+            "hatexplain",
+            "dynahate_hatexplain",
+        ),
+        required=True,
+        help="Must match training_mode in the config (binary: dynahate/hatecheck/hateeval; "
+        "structured: dynahate/hateeval/hatexplain/dynahate_hatexplain).",
+    )
     tr.set_defaults(func=cmd_train)
 
     return p

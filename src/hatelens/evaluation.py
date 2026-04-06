@@ -20,6 +20,10 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+# Binary hate detection: label 0 = not hate, 1 = hate.
+# Unless noted otherwise, precision/recall/f1 are **hate-class (positive) binary** metrics
+# (sklearn ``average="binary"``), which matches common hate-speech reporting.
+
 
 @torch.inference_mode()
 def predict_batch(
@@ -55,11 +59,24 @@ def predict_batch(
 def classification_metrics(
     labels: np.ndarray, preds: np.ndarray, probs: np.ndarray
 ) -> dict[str, float]:
-    out = {
+    """
+    Standardized binary metrics for hate vs not-hate.
+
+    - ``precision``, ``recall``, ``f1``: hate class (positive), ``average="binary"``.
+    - ``f1_macro``, ``precision_macro``, ``recall_macro``: unweighted class average.
+    - ``roc_auc`` / ``pr_auc``: ranking metrics when probabilities are valid.
+    """
+    labels = np.asarray(labels).astype(np.int64)
+    preds = np.asarray(preds).astype(np.int64)
+    out: dict[str, float] = {
         "accuracy": float(accuracy_score(labels, preds)),
-        "f1": float(f1_score(labels, preds, zero_division=0)),
-        "precision": float(precision_score(labels, preds, zero_division=0)),
-        "recall": float(recall_score(labels, preds, zero_division=0)),
+        "precision": float(precision_score(labels, preds, average="binary", zero_division=0)),
+        "recall": float(recall_score(labels, preds, average="binary", zero_division=0)),
+        "f1": float(f1_score(labels, preds, average="binary", zero_division=0)),
+        "f1_binary": float(f1_score(labels, preds, average="binary", zero_division=0)),
+        "f1_macro": float(f1_score(labels, preds, average="macro", zero_division=0)),
+        "precision_macro": float(precision_score(labels, preds, average="macro", zero_division=0)),
+        "recall_macro": float(recall_score(labels, preds, average="macro", zero_division=0)),
     }
     try:
         out["roc_auc"] = float(roc_auc_score(labels, probs))

@@ -1,0 +1,32 @@
+# CPU/CI smoke: tiny subsample + few steps. Set HATELENS_SMOKE=1 or smoke_test: true.
+
+task_type: "SEQ_CLS"
+r: 2
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - "k_proj"
+  - "v_proj"
+
+output_dir: "outputs/runs/tinyllama-smoke"
+learning_rate: 0.001
+num_train_epochs: 3
+weight_decay: 0.01
+logging_dir: "outputs/logs/tinyllama-smoke"
+logging_steps: 10
+metric_for_best_model: "f1"
+seed: 42
+model_checkpoint: "PY007/TinyLlama-1.1B-step-50K-105b"
+model_name: "TinyLlama-smoke"
+
+smoke_test: true
+max_train_samples: 8
+max_eval_samples: 8
+smoke_num_epochs: 1
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 1
+dataloader_num_workers: 0
+fp16: false
+max_length: 128

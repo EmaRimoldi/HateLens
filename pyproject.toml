@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hatelens"
-version = "0.3.0"
+version = "0.4.0"
 description = "Tiny LLMs + LoRA for efficient, explainable hate speech detection (DynaHate, HateCheck)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,11 +41,12 @@ dependencies = [
 [project.optional-dependencies]
 lime = ["lime>=0.2.0.1"]
 wandb = ["wandb>=0.16.0"]
+quant = ["bitsandbytes>=0.43.0"]
 dev = [
   "pytest>=8.0.0",
   "ruff>=0.6.0",
 ]
-all = ["lime>=0.2.0.1", "wandb>=0.16.0"]
+all = ["lime>=0.2.0.1", "wandb>=0.16.0", "bitsandbytes>=0.43.0"]
 
 [project.scripts]
 hatelens = "hatelens.cli:main"

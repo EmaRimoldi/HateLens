@@ -1,0 +1,25 @@
+# Qwen2.5-1.5B + LoRA (modern small-model baseline). Requires network to pull weights.
+
+task_type: "SEQ_CLS"
+peft_type: "lora"
+quantization: "none"
+
+r: 8
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - "q_proj"
+  - "k_proj"
+  - "v_proj"
+  - "o_proj"
+
+output_dir: "outputs/runs/qwen2.5-1.5b"
+learning_rate: 0.0002
+num_train_epochs: 3
+weight_decay: 0.01
+logging_dir: "outputs/logs/qwen2.5-1.5b"
+logging_steps: 50
+metric_for_best_model: "f1_macro"
+seed: 42
+model_checkpoint: "qwen2.5-1.5b"
+model_name: "Qwen2.5-1.5B"

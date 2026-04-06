@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0 — 2026-04-06 (research framework extension)
+
+### Added
+
+- **Model registry** (`hatelens/registry.py`) and **PEFT factory** (`hatelens/peft_factory.py`): LoRA, QLoRA (optional `bitsandbytes`), DoRA / AdaLoRA / PiSSA with fallbacks.
+- **Unified example schema** (`hatelens/schema.py`), **row mapping** (`hatelens/mapping.py`), **HateXplain loader stub** (`hatelens/loaders/hatexplain.py`).
+- **Calibration metrics** (ECE, Brier), **consistency losses** (JS / KL utilities), **structured JSON parsing**, **policy preprompt** helper, **distillation cache** helpers.
+- **Evaluation bundle** (`hatelens/evaluation_suite.py`) building on extended `classification_metrics` (**f1_binary**, **f1_macro**, macro precision/recall).
+- **Training**: config hash + git HEAD logging; **smoke mode** (`smoke_test` / `HATELENS_SMOKE`); subset train/val/**test** before tokenization; `max_length` in YAML; Transformers 5 **`processing_class`** instead of `tokenizer`.
+- **Configs**: `configs/models/tinyllama-legacy.yaml`, `configs/models/qwen2.5-1.5b.yaml`, `configs/smoke/tinyllama_dynahate.yaml`, `configs/experiments/README.md`.
+- **Docs**: `docs/framework-audit-2026.md` (audit + migration + execution plan).
+- **Tests**: metrics, mapping, parsing, calibration, consistency, registry; `tests/conftest.py` for BLAS thread limits.
+
+### Changed
+
+- **DynaHate** splits now retain `target`, `type`, `level` when present for structured supervision downstream.
+- **`pyproject.toml`**: optional `hatelens[quant]` for QLoRA.
+
 ## 0.3.0 — 2026-04-05
 
 ### Changed (repository layout)

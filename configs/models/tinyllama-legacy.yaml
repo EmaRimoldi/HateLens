@@ -1,0 +1,24 @@
+# Canonical legacy profile matching published HateTinyLLM-style TinyLlama + LoRA (SEQ_CLS).
+# Same hyperparameters as tinyllama.yaml; kept as a stable alias for backward compatibility.
+
+task_type: "SEQ_CLS"
+r: 2
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - "k_proj"
+  - "v_proj"
+
+output_dir: "outputs/runs/tinyllama"
+learning_rate: 0.001
+num_train_epochs: 3
+weight_decay: 0.01
+eval_strategy: "epoch"
+save_strategy: "epoch"
+load_best_model_at_end: true
+logging_dir: "outputs/logs/tinyllama"
+logging_steps: 100
+metric_for_best_model: "f1"
+seed: 123
+model_checkpoint: "PY007/TinyLlama-1.1B-step-50K-105b"
+model_name: "TinyLlama"
