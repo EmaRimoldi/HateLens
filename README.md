@@ -1,10 +1,30 @@
 # HateLens
 
-**Tiny decoder LMs + LoRA for efficient, explainable hate speech detection** on [DynaHate](https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset) and [HateCheck](https://github.com/paul-rottger/hatecheck-data).
+**Efficient decoder LMs + LoRA for hate-speech detection** with **pre/post fine-tuning evaluation**, **HateCheck functionality diagnostics**, and optional **LIME** word attributions — on [DynaHate](https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset) and [HateCheck](https://github.com/paul-rottger/hatecheck-data).
 
-## Why this matters
+---
 
-HateLens packages the full loop: **PEFT fine-tuning**, **correct LoRA inference** (merge adapters for speed), **batched evaluation**, optional **LIME** word attributions, and **HateCheck functionality diagnostics** (per test-type metrics). The repository keeps **data and configs** in Git; **runs, plots, and checkpoints** live under `outputs/` (gitignored except `.gitkeep`).
+## The problem
+
+Moderation and safety systems do not only need **high average accuracy**. They need models that teams can **ship cheaply**, **debug when they fail**, and **inspect under adaptation**. A classifier that looks strong on one slice can still break on targeted functional tests (slurs, quoted hate, negation, identity attacks, etc.). Explaining *which words* drive a prediction is still a practical bridge between model behavior and human review — even when full interpretability remains an open research problem.
+
+HateLens is built around that gap: **parameter-efficient fine-tuning** on small open decoder LMs, **systematic functional testing** via HateCheck metadata, and **optional post-hoc attributions** (LIME) — in one reproducible codebase.
+
+---
+
+## What HateLens provides
+
+| Capability | Why it matters |
+|------------|----------------|
+| **PEFT / LoRA training** | Adapt 1B-class decoders without full fine-tunes; configs for TinyLlama, Phi-2, OPT. |
+| **Correct LoRA inference** | Load and **merge** adapters for reliable pre vs post–fine-tune comparison (common footgun in PEFT repos). |
+| **Batched evaluation** | Fast metrics + CSV summaries; optional comparison plots. |
+| **HateCheck `diagnose-hatecheck`** | Per-**functionality** accuracy/F1 — surfaces *where* the model fails, not only *how much*. |
+| **LIME (optional extra)** | Word-level attributions for qualitative analysis and notebooks. |
+| **Clean artifact layout** | Data and YAML in Git; **all** generated files under `outputs/` (gitignored except `.gitkeep`). |
+| **Cluster-ready** | SLURM template under `scripts/slurm/train.sh`. |
+
+For adjacent public work in the same model class (TinyLlama / LoRA hate detection), see e.g. [HateTinyLLM](https://arxiv.org/abs/2405.01577) — HateLens focuses on a **full evaluation + diagnostics + explainability loop** and engineering hygiene, not a new benchmark score. Nuanced limits (what we do *not* claim) are in [`docs/related-work.md`](docs/related-work.md).
 
 ---
 
@@ -19,7 +39,7 @@ HateLens packages the full loop: **PEFT fine-tuning**, **correct LoRA inference*
 | `scripts/` | Shell helpers and legacy Python entrypoints |
 | `scripts/slurm/train.sh` | SLURM template |
 | `notebooks/` | Example plots (e.g. LIME barplots) |
-| `docs/` | Architecture, experiments, cluster runbook |
+| `docs/` | Architecture, experiments, cluster runbook, related work |
 | `tests/` | `pytest` |
 
 ---
