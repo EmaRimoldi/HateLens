@@ -1,50 +1,46 @@
 # HateLens
 
-**Efficient decoder LMs + LoRA for hate-speech detection** with **pre/post fine-tuning evaluation**, **HateCheck functionality diagnostics**, and optional **LIME** word attributions — on [DynaHate](https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset) and [HateCheck](https://github.com/paul-rottger/hatecheck-data).
+**Parameter-efficient (LoRA-family) fine-tuning of small decoder LMs** for **binary hate-speech detection**, with an **extended research pipeline** for **structured multi-task supervision**, optional **rationale** and **pair-consistency** objectives, and a **unified evaluation runner** (in-domain, cross-dataset, HateCheck robustness, calibration, efficiency).
+
+This repository supports:
+
+- **Legacy replication path** — the original TinyLlama + LoRA + DynaHate / HateCheck workflow (CLI `train` + `evaluate` + `diagnose-hatecheck`).
+- **Follow-up research pipeline** — `training_mode: binary | structured` in YAML, HateEval / HateXplain loaders, structured multi-head model + trainer, and `hatelens eval-run` for paper-style evaluation exports.
+
+If you only need the original paper-style workflow, use **binary** configs under `configs/models/` and the legacy `evaluate` command. If you are running the extended experiments, prefer **`training_mode: structured`** and **`hatlens eval-run`**.
 
 ---
 
-## The problem
+## Project overview
 
-Moderation and safety systems do not only need **high average accuracy**. They need models that teams can **ship cheaply**, **debug when they fail**, and **inspect under adaptation**. A classifier that looks strong on one slice can still break on targeted functional tests (slurs, quoted hate, negation, identity attacks, etc.). Explaining *which words* drive a prediction is still a practical bridge between model behavior and human review — even when full interpretability remains an open research problem.
-
-HateLens is built around that gap: **parameter-efficient fine-tuning** on small open decoder LMs, **systematic functional testing** via HateCheck metadata, and **optional post-hoc attributions** (LIME) — in one reproducible codebase.
-
----
-
-## What HateLens provides
-
-| Capability | Why it matters |
-|------------|----------------|
-| **PEFT / LoRA training** | Adapt 1B-class decoders without full fine-tunes; configs for TinyLlama, Phi-2, OPT. |
-| **Correct LoRA inference** | Load and **merge** adapters for reliable pre vs post–fine-tune comparison (common footgun in PEFT repos). |
-| **Batched evaluation** | Fast metrics + CSV summaries; optional comparison plots. |
-| **HateCheck `diagnose-hatecheck`** | Per-**functionality** accuracy/F1 — surfaces *where* the model fails, not only *how much*. |
-| **LIME (optional extra)** | Word-level attributions for qualitative analysis and notebooks. |
-| **Clean artifact layout** | Data and YAML in Git; **all** generated files under `outputs/` (gitignored except `.gitkeep`). |
-| **Cluster-ready** | SLURM template under `scripts/slurm/train.sh`. |
-
-For adjacent public work in the same model class (TinyLlama / LoRA hate detection), see e.g. [HateTinyLLM](https://arxiv.org/abs/2405.01577) — HateLens focuses on a **full evaluation + diagnostics + explainability loop** and engineering hygiene, not a new benchmark score. Nuanced limits (what we do *not* claim) are in [`docs/related-work.md`](docs/related-work.md).
+- **What HateLens is**: a compact codebase for fine-tuning open decoder LMs (TinyLlama, Phi-2, OPT, etc.) with PEFT (LoRA / optional QLoRA / DoRA when supported), plus systematic evaluation on DynaHate, HateEval, HateXplain, and functional testing via HateCheck.
+- **Legacy scope**: binary LoRA fine-tuning + batched eval + HateCheck diagnostics (+ optional LIME).
+- **Extended scope**: structured multi-head prediction (main + auxiliary labels), optional rationale token supervision (HateXplain-aligned spans when available), optional pair-consistency regularization (when pair metadata exists), unified `eval-run` exports under `outputs/eval_runs/`.
+- **Binary mode** (`training_mode: binary` or omitted): Hugging Face `AutoModelForSequenceClassification` + LoRA; standard hate vs not-hate logits.
+- **Structured mode** (`training_mode: structured`): backbone + PEFT with `task_type: FEATURE_EXTRACTION`, multi-head classifier + token rationale head; losses are combined in `StructuredTrainer` (main + aux + optional rationale + optional consistency).
 
 ---
 
-## Repository layout
+## Repository features (verified in code)
 
-| Path | Role |
-|------|------|
-| `src/hatelens/` | Python package and CLI |
-| `configs/models/*.yaml` | LoRA + trainer hyperparameters |
-| `data/` | DynaHate CSV and HateCheck splits (versioned) |
-| `outputs/` | **All generated files** (training, eval, LIME) — not committed |
-| `scripts/` | Shell helpers and legacy Python entrypoints |
-| `scripts/slurm/train.sh` | SLURM template |
-| `notebooks/` | Example plots (e.g. LIME barplots) |
-| `docs/` | Architecture, experiments, cluster runbook, related work |
-| `tests/` | `pytest` |
+| Feature | Implementation |
+|--------|------------------|
+| Legacy binary training | `train_pipeline.run_training` when `training_mode` is binary |
+| Structured multi-task training | `structured_train.run_structured_training` + `StructuredHateModel` |
+| Rationale-aware training | `use_rationale` + HateXplain span alignment (`rationale_align.py`) |
+| Consistency-aware training | `use_consistency` + pair relations in `StructuredTrainer` |
+| HateEval | `datasets.create_hateeval_dataset` (place TSVs under `data/HateEval/`) |
+| HateXplain | `structured_data.load_hatexplain_hf` (requires HF access / cache) |
+| HateCheck evaluation | `eval-run --hatecheck` + `diagnose-hatecheck` |
+| Calibration metrics | ECE + Brier in `evaluation_calibration.py` and `eval-run` bundles |
+| Efficiency metrics | `outputs/.../efficiency.json` from `eval-run` (params, disk, timing) |
+| PEFT variants | `peft_type` + `quantization` in YAML (`lora`, `qlora`, `dora`, …) |
+
+**Not claimed**: true bottleneck Adapter layers (Hugging Face `AdapterConfig`) — the repo standardizes on **LoRA-family PEFT** unless you extend `peft_factory.py` yourself.
 
 ---
 
-## Install
+## Installation
 
 **Python 3.10+**. Recommended: [uv](https://docs.astral.sh/uv/).
 
@@ -52,106 +48,224 @@ For adjacent public work in the same model class (TinyLlama / LoRA hate detectio
 git clone https://github.com/EmaRimoldi/HateLens.git
 cd HateLens
 uv sync
-uv sync --extra lime    # optional: LIME explainability
-uv sync --extra wandb   # optional: training logging
 ```
 
-Set `HATELENS_ROOT` to the repo root if you run commands from another directory.
+Optional extras:
+
+```bash
+uv sync --extra lime     # LIME attributions
+uv sync --extra wandb      # experiment tracking
+uv sync --extra quant      # bitsandbytes / QLoRA-style loading
+```
+
+Set `HATELENS_ROOT` to the repo root if you launch commands from elsewhere.
+
+**GPU**: training/eval-run benefits from CUDA; CPU runs are possible for smoke tests but will be slow for full epochs.
+
+**Hugging Face**: gated models may need `huggingface-cli login` or `HF_TOKEN`. HateXplain loading uses `datasets.load_dataset` and may download on first use.
 
 ---
 
-## Using the framework
+## Dataset support
 
-### 1. Train (LoRA)
+| Dataset | Role | Notes |
+|--------|------|------|
+| **DynaHate** | Primary train/eval for hate vs not | CSV under `data/DynaHate/` (see `datasets.download_dynahate`). |
+| **HateEval** | Train/eval (English SemEval 2019) | Place `train_en.tsv` / `dev_en.tsv` under `data/HateEval/` or call `download_hateeval_tsvs()` (may fail on strict SSL; manual download is OK). |
+| **HateXplain** | Rationale supervision (structured) | Loaded via Hugging Face; requires network or cached files. |
+| **HateCheck** | Functional robustness eval | `data/hatecheck/hatecheck_split.csv` — stratified splits. |
 
-Pick a config under `configs/models/` and a dataset:
+Schema mappings are implemented in `datasets.py` and `structured_data.py` (binary label column `label`, text fields `text` / `test_case` / `post` as appropriate).
+
+---
+
+## Training modes
+
+### Binary (`training_mode: binary` or omitted)
+
+- Standard sequence classification head on top of the decoder.
+- Datasets: `dynahate`, `hatecheck`, `hateeval`.
+
+### Structured (`training_mode: structured`)
+
+- Backbone: `AutoModel` + PEFT with **`task_type: FEATURE_EXTRACTION`** (see configs).
+- Heads: main (hate vs not) + auxiliary vocabularies + token rationale head.
+- **Rationale**: enabled with `use_rationale: true` (HateXplain rows only contribute span losses when spans parse).
+- **Consistency**: `use_consistency: true` uses pair metadata (`pair_id`, `pair_relation`) when present; many batches may have zero pair terms (loss is gated).
+- **Masked labels**: `IGNORE_INDEX` (`-100`) for padding / unknown auxiliaries as in `labels.py`.
+
+---
+
+## How to run legacy experiments
+
+TinyLlama on DynaHate / HateEval (binary configs such as `tinyllama.yaml` or `tinyllama-legacy.yaml`):
 
 ```bash
-uv run hatelens train configs/models/tinyllama.yaml --dataset dynahate
-uv run hatelens train configs/models/tinyllama.yaml --dataset hatecheck
+uv run hatelens train configs/models/tinyllama-legacy.yaml --dataset dynahate
+uv run hatelens train configs/models/tinyllama-legacy.yaml --dataset hateeval
 ```
 
-**Outputs**
-
-- Checkpoints: `outputs/runs/<model>/<dataset>/best_checkpoint/` (PEFT adapter + tokenizer files)
-- HF Trainer checkpoints + TensorBoard logs: `outputs/runs/<model>/<dataset>/` and `outputs/logs/<model>/<dataset>/`
-
-**Weights & Biases** (optional):
+Phi-2 / OPT on DynaHate:
 
 ```bash
-export WANDB_ENABLED=1
-export WANDB_ENTITY=your-team   # optional
-uv run hatelens train configs/models/tinyllama.yaml --dataset hatecheck
+uv run hatelens train configs/models/phi-2.yaml --dataset dynahate
+uv run hatelens train configs/models/opt-1.3b.yaml --dataset dynahate
 ```
 
-**Shell shortcuts**
+Smoke / CI-style run (small subsets via env + YAML `smoke_test`):
 
 ```bash
-./scripts/train_dynahate.sh
-./scripts/train_hatecheck.sh configs/models/phi-2.yaml
+export HATELENS_SMOKE=1
+uv run hatelens train configs/smoke/tinyllama_dynahate.yaml --dataset dynahate
 ```
 
-### 2. Evaluate (pre- vs post-FT)
-
-Uses the base model from Hugging Face and, if present, your fine-tuned adapter.
-
-Default adapter paths (after TinyLlama training):
-
-- `outputs/runs/tinyllama/dynahate/best_checkpoint`
-- `outputs/runs/tinyllama/hatecheck/best_checkpoint`
-
-Override with `--adapter` or `HATELENS_CKPT_DYNAHATE` / `HATELENS_CKPT_HATECHECK`.
+Legacy evaluation (pre/post adapter):
 
 ```bash
+uv run hatelens evaluate --dynahate --batch-size 16
 uv run hatelens evaluate --hatecheck --batch-size 16
-uv run hatelens evaluate --dynahate --plots --adapter /path/to/best_checkpoint
 ```
 
-**Writes** `outputs/eval/<dataset>/metrics_summary.csv` (and optional `comparison_bar.png`).
+---
 
-### 3. HateCheck diagnostics (by functionality)
+## How to run structured experiments
 
-Requires a trained HateCheck adapter:
+Structured TinyLlama examples:
+
+```bash
+uv run hatelens train configs/models/tinyllama-structured.yaml --dataset dynahate
+uv run hatelens train configs/models/tinyllama-structured.yaml --dataset hateeval
+uv run hatelens train configs/models/tinyllama-structured.yaml --dataset hatexplain
+uv run hatelens train configs/models/tinyllama-structured.yaml --dataset dynahate_hatexplain
+```
+
+Rationale / consistency ablations (see `configs/experiments/paper_matrix/`):
+
+```bash
+uv run hatelens train configs/experiments/paper_matrix/structured_dynahate_no_rationale.yaml --dataset dynahate
+uv run hatelens train configs/experiments/paper_matrix/structured_dynahate_consistency.yaml --dataset dynahate
+```
+
+Artifacts per run directory:
+
+- `config_resolved.yaml`, `train_metrics.json` (runtime + Trainer metrics)
+- `best_checkpoint/` with tokenizer + adapter (binary) **or** `peft_adapter/`, `vocab/`, `structured_model.pt`, `structured_heads.pt` (structured)
+
+---
+
+## How to run evaluation
+
+### Unified runner (`eval-run`)
+
+Configuration example: `configs/eval/minimal.yaml`.
+
+```bash
+uv run hatelens eval-run --config configs/eval/minimal.yaml
+```
+
+Quick CLI without YAML (requires a real checkpoint path on disk):
+
+```bash
+uv run hatelens eval-run \
+  --checkpoint outputs/runs/tinyllama/dynahate/best_checkpoint \
+  --run-name my_eval \
+  --in-domain dynahate hateeval \
+  --cross dynahate:hateeval hateeval:dynahate \
+  --hatecheck
+```
+
+**Cross-dataset entries** label the *intent* (trained on A, evaluated on B). The runner always evaluates the **given checkpoint** on dataset **B**’s test split (it does not re-train).
+
+Outputs (under `outputs/eval_runs/<run_name>/`):
+
+- `metrics.json`, `metrics.csv`
+- `predictions.jsonl`
+- `rationale_examples.jsonl` (structured rationale metrics or a skip message)
+- `efficiency.json` (parameters, checkpoint bytes, simple latency / throughput; CUDA peak memory when available)
+
+### Table export helper
+
+```bash
+uv run hatelens export-tables path/to/metrics.json --kind hatecheck --out-md /tmp/table.md
+```
+
+### Legacy commands (still supported)
 
 ```bash
 uv run hatelens diagnose-hatecheck --batch-size 16
-# or
-uv run hatelens diagnose-hatecheck --adapter outputs/runs/tinyllama/hatecheck/best_checkpoint
 ```
 
-**Writes** `outputs/eval/hatecheck/functionality_breakdown.csv`.
-
-### 4. LIME (optional extra)
-
-```bash
-uv run hatelens lime --hatecheck
-```
-
-**Writes** pickles under `outputs/lime/` (e.g. `positive_pre_FT_hatecheck.pkl`). Plot them with `notebooks/plot_lime_barplots.ipynb`.
-
-### 5. Cluster (SLURM)
-
-See `docs/cluster-runbook.md`. Template:
-
-```bash
-export HATELENS_ROOT="$(pwd)"
-mkdir -p outputs/logs
-sbatch scripts/slurm/train.sh hatecheck configs/models/tinyllama.yaml
-```
-
-Edit `#SBATCH` headers in `scripts/slurm/train.sh` for your partition, GPU, walltime, and memory.
+More detail: [`docs/evaluation.md`](docs/evaluation.md).
 
 ---
 
-## Legacy scripts
+## Output directory guide
 
-`scripts/evaluate_models.py`, `scripts/compute_lime_scores.py`, and `scripts/trainer_*.py` forward to the same CLI. Prefer `uv run hatelens …`.
+| Artifact | Location |
+|---------|----------|
+| Training runs | `outputs/runs/<model>/<dataset>/` or `.../structured_<dataset>/` |
+| Best checkpoint | `.../best_checkpoint/` |
+| Resolved config + metrics | `config_resolved.yaml`, `train_metrics.json` next to `best_checkpoint/` |
+| Unified eval exports | `outputs/eval_runs/<run_name>/` |
+| Legacy eval CSV | `outputs/eval/<dataset>/metrics_summary.csv` |
+
+---
+
+## Minimal follow-up paper reproduction
+
+1. Train baselines (binary vs structured) on DynaHate using configs in `configs/experiments/paper_matrix/README.md`.
+2. Run `hatlens eval-run` on each checkpoint (`--hatecheck` for robustness, `--rationale` for structured checkpoints with HateXplain).
+3. Collect `metrics.json` + `efficiency.json` from `outputs/eval_runs/`.
+4. Build comparison tables:
+
+```bash
+uv run hatelens export-tables outputs/eval_runs/run_a/metrics.json outputs/eval_runs/run_b/metrics.json \
+  --kind binary_vs_structured --out-csv /tmp/compare.csv
+```
+
+See `configs/experiments/paper_matrix/README.md` for the full command matrix (Groups 1–6).
+
+---
+
+## Current limitations / future work
+
+- **HateXplain** requires Hugging Face access; offline environments must cache datasets ahead of time.
+- **HateEval** download scripts may fail under strict SSL — manual placement of TSVs is supported.
+- **QLoRA / 4-bit structured training** is not the default structured path; structured training uses full-precision backbone loading unless you extend it.
+- **True bottleneck adapters** (non-LoRA adapters) are not the default implementation.
+- **`eval-run` rationale metrics** depend on span extraction success; counts may be low if records lack usable spans.
+- **GPU memory** scales with model size; use smoke configs or smaller checkpoints when developing on laptops.
+
+---
+
+## Repository layout (high level)
+
+| Path | Role |
+|------|------|
+| `src/hatelens/` | Package + CLI (`train`, `eval-run`, `export-tables`, …) |
+| `configs/models/` | Base training YAML profiles |
+| `configs/eval/` | `eval-run` YAML templates |
+| `configs/experiments/paper_matrix/` | Follow-up paper matrix configs + README |
+| `data/` | Versioned CSV / splits (not all datasets are redistributable) |
+| `outputs/` | All generated artifacts (gitignored) |
+| `docs/` | Architecture / evaluation notes |
+| `tests/` | Pytest |
 
 ---
 
 ## Configuration
 
-YAML fields are documented inline in `configs/models/*.yaml`. Common knobs: `model_checkpoint`, `r`, `lora_alpha`, `target_modules`, `output_dir` / `logging_dir` (per-dataset subfolders are appended automatically).
+YAML fields are documented inline in `configs/models/*.yaml`. Important keys:
+
+- `training_mode`: `binary` (default) or `structured`
+- `task_type`: `SEQ_CLS` (binary) or `FEATURE_EXTRACTION` (structured backbone)
+- `peft_type`, `quantization`, loss weights (`aux_loss_weight`, `rationale_loss_weight`, `consistency_loss_weight`)
+
+---
+
+## Legacy scripts
+
+`scripts/evaluate_models.py`, `scripts/compute_lime_scores.py`, and `scripts/trainer_*.py` forward to the CLI where possible. Prefer `uv run hatelens …`.
 
 ---
 

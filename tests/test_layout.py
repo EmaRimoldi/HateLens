@@ -11,6 +11,8 @@ def test_default_configs_exist():
     assert (root / "configs/models/opt-1.3b.yaml").is_file()
     assert (root / "configs/models/qwen2.5-1.5b.yaml").is_file()
     assert (root / "configs/models/tinyllama-structured.yaml").is_file()
+    assert (root / "configs/eval/minimal.yaml").is_file()
+    assert (root / "configs/experiments/paper_matrix/tinyllama_binary_compare.yaml").is_file()
     assert (root / "configs/smoke/tinyllama_dynahate.yaml").is_file()
 
 

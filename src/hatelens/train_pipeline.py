@@ -21,11 +21,16 @@ from transformers import (
     TrainingArguments,
 )
 
-from hatelens.datasets import create_dynahate_dataset, create_hatecheck_dataset, create_hateeval_dataset
+from hatelens.datasets import (
+    create_dynahate_dataset,
+    create_hatecheck_dataset,
+    create_hateeval_dataset,
+)
 from hatelens.evaluation import classification_metrics
+from hatelens.paths import data_dir, repo_root
 from hatelens.peft_factory import apply_peft, build_base_sequence_classifier, build_peft_config
 from hatelens.registry import resolve_model_id
-from hatelens.paths import data_dir, repo_root
+from hatelens.training_artifacts import write_config_resolved, write_train_metrics_json
 
 logger = logging.getLogger(__name__)
 
@@ -274,10 +279,12 @@ def run_training(config_path: Path, dataset: TrainDatasetName, *, seed: int = 12
         compute_metrics=compute_metrics,
     )
     logger.info("Starting training dataset=%s config=%s", dataset, config_path)
-    trainer.train()
+    train_out = trainer.train()
     best_path = out_dir / "best_checkpoint"
     best_path.mkdir(parents=True, exist_ok=True)
     trainer.save_model(str(best_path))
+    write_config_resolved(config_path, out_dir)
+    write_train_metrics_json(out_dir, train_metrics=dict(train_out.metrics))
     logger.info("Saved best model to %s", best_path)
 
 

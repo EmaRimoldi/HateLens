@@ -22,3 +22,13 @@ def data_dir() -> Path:
 def outputs_dir() -> Path:
     """Root for all generated artifacts (eval, LIME pickles, training runs)."""
     return repo_root() / "outputs"
+
+
+def eval_runs_dir() -> Path:
+    """Unified evaluation runner output root (``metrics.json``, ``predictions.jsonl``, …)."""
+    return outputs_dir() / "eval_runs"
+
+
+def runs_dir() -> Path:
+    """Training runs root (``outputs/runs``)."""
+    return outputs_dir() / "runs"

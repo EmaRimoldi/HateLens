@@ -19,7 +19,9 @@ from hatelens.datasets import (
     data_dir,
 )
 from hatelens.diagnostics import hatecheck_functionality_report
+from hatelens.eval_runner import add_eval_cli_arguments
 from hatelens.evaluation import classification_metrics, log_metrics, predict_batch
+from hatelens.metrics_tables import build_export_arg_parser
 from hatelens.modeling import default_checkpoints, load_sequence_classifier
 from hatelens.paths import outputs_dir
 
@@ -151,6 +153,18 @@ def cmd_train(args: argparse.Namespace) -> None:
     run_training(Path(args.config), args.dataset)
 
 
+def cmd_eval_run(args: argparse.Namespace) -> None:
+    from hatelens.eval_runner import run_eval_from_namespace
+
+    run_eval_from_namespace(args)
+
+
+def cmd_export_tables(args: argparse.Namespace) -> None:
+    from hatelens.metrics_tables import export_tables_from_namespace
+
+    export_tables_from_namespace(args)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="hatelens", description="HateLens CLI")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -224,6 +238,25 @@ def build_parser() -> argparse.ArgumentParser:
         "structured: dynahate/hateeval/hatexplain/dynahate_hatexplain).",
     )
     tr.set_defaults(func=cmd_train)
+
+    er = sub.add_parser(
+        "eval-run",
+        help=(
+            "Unified evaluation: in-domain, cross-dataset, HateCheck, "
+            "rationale, calibration, efficiency"
+        ),
+    )
+    add_eval_cli_arguments(er)
+    er.set_defaults(func=cmd_eval_run)
+
+    ex = sub.add_parser(
+        "export-tables",
+        help="Aggregate metrics.json files into CSV/Markdown/LaTeX tables",
+        parents=[build_export_arg_parser()],
+        add_help=False,
+        conflict_handler="resolve",
+    )
+    ex.set_defaults(func=cmd_export_tables)
 
     return p
 

@@ -1,4 +1,6 @@
-"""Structured multi-task training (invoked from ``train_pipeline`` when ``training_mode: structured``)."""
+"""
+Structured multi-task training (``train_pipeline`` when ``training_mode: structured``).
+"""
 
 from __future__ import annotations
 
@@ -23,6 +25,7 @@ from hatelens.registry import resolve_model_id
 from hatelens.structured_collator import StructuredCollator
 from hatelens.structured_data import build_structured_dataset_dict
 from hatelens.structured_trainer import StructuredTrainer
+from hatelens.training_artifacts import write_config_resolved, write_train_metrics_json
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +98,12 @@ def run_structured_training(
         dataset_key,
         training_mode,
     )
-    logger.info("Resolved config keys: training_mode=%s use_rationale=%s use_consistency=%s", training_mode, cfg.get("use_rationale", True), cfg.get("use_consistency", False))
+    logger.info(
+        "Resolved config keys: training_mode=%s use_rationale=%s use_consistency=%s",
+        training_mode,
+        cfg.get("use_rationale", True),
+        cfg.get("use_consistency", False),
+    )
 
     use_wandb = _maybe_wandb_init(f"hatlens-structured-{model_name}-{dataset_key}", cfg)
     seed_i = int(cfg.get("seed", seed))
@@ -238,7 +246,7 @@ def run_structured_training(
         compute_metrics=compute_metrics,
     )
     logger.info("Starting structured training dataset=%s config=%s", dataset_key, config_path)
-    trainer.train()
+    train_out = trainer.train()
 
     best_path = out_dir / "best_checkpoint"
     best_path.mkdir(parents=True, exist_ok=True)
@@ -247,4 +255,6 @@ def run_structured_training(
     if hasattr(model.backbone, "save_pretrained"):
         model.backbone.save_pretrained(best_path / "peft_adapter")
     model.save_heads(best_path / "structured_heads.pt")
+    write_config_resolved(config_path, out_dir)
+    write_train_metrics_json(out_dir, train_metrics=dict(train_out.metrics))
     logger.info("Saved structured checkpoint to %s", best_path)
