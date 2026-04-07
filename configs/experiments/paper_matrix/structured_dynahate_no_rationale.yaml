@@ -1,7 +1,8 @@
 # Group 3 — rationale ablation (no rationale supervision)
-# Output: outputs/runs/tinyllama/structured_dynahate/best_checkpoint
+# Output: outputs/runs/tinyllama/structured_dynahate_no_rationale/best_checkpoint
 
 training_mode: "structured"
+structured_output_suffix: "_no_rationale"
 task_type: "FEATURE_EXTRACTION"
 peft_type: "lora"
 r: 8

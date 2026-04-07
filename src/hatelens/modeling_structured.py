@@ -23,6 +23,24 @@ class StructuredOutputs:
     logits_explicitness: torch.Tensor
     logits_rationale: torch.Tensor  # (B, T, 2) token-level binary
 
+    def __len__(self) -> int:
+        """So ``Trainer.prediction_step`` can treat model outputs like a 1-tuple of logits."""
+        return 1
+
+    def __getitem__(self, idx: Any) -> Any:
+        """
+        - ``outputs[0]`` / unwrap after ``len(outputs)==1`` → main classification logits.
+        - ``outputs[1:]`` (HF path when ``compute_loss`` returns structured outputs) → ``(logits,)``.
+        """
+        if idx == 0:
+            return self.logits
+        if isinstance(idx, slice):
+            if idx.start == 1 and idx.stop is None:
+                return (self.logits,)
+            if idx.start is None and idx.stop is None and idx.step is None:
+                return self.logits
+        raise IndexError(idx)
+
 
 def pool_last_non_pad(hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
     """Last real token (right-padded)."""

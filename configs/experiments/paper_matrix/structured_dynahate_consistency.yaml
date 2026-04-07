@@ -1,7 +1,9 @@
 # Group 4 — consistency ablation (rationale + pair consistency when pairs exist)
 # DynaHate pairs may be sparse; loss gates on available pair metadata.
+# Output: outputs/runs/tinyllama/structured_dynahate_consistency/best_checkpoint
 
 training_mode: "structured"
+structured_output_suffix: "_consistency"
 task_type: "FEATURE_EXTRACTION"
 peft_type: "lora"
 r: 8

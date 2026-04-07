@@ -203,27 +203,64 @@ More detail: [`docs/evaluation.md`](docs/evaluation.md).
 
 | Artifact | Location |
 |---------|----------|
-| Training runs | `outputs/runs/<model>/<dataset>/` or `.../structured_<dataset>/` |
-| Best checkpoint | `.../best_checkpoint/` |
-| Resolved config + metrics | `config_resolved.yaml`, `train_metrics.json` next to `best_checkpoint/` |
+| Training runs | `outputs/runs/<model>/<dataset>/` (binary) or `.../structured_<dataset>/` (structured) |
+| Best checkpoint | `.../best_checkpoint/` — binary: PEFT adapter + tokenizer; structured: `peft_adapter/`, `vocab/`, `structured_model.pt`, `structured_heads.pt` |
+| Resolved config + train metrics | `config_resolved.yaml`, `train_metrics.json` in the run directory (parent of `best_checkpoint/`) |
+| Trainer validation snapshot | `eval_summary.json` — last epoch’s `eval_*` keys from Hugging Face; **not** a substitute for `eval-run` |
 | Unified eval exports | `outputs/eval_runs/<run_name>/` |
+| Eval artifacts | `metrics.json`, `metrics.csv`, `predictions.jsonl`, `rationale_examples.jsonl`, `efficiency.json` |
 | Legacy eval CSV | `outputs/eval/<dataset>/metrics_summary.csv` |
+
+---
+
+## Cluster / batch jobs (SLURM)
+
+GPU training jobs should **not** inherit `HATELENS_SMOKE=1` from your shell. The template script resets smoke off:
+
+```bash
+export HATELENS_ROOT="$(pwd)"
+mkdir -p outputs/logs
+sbatch scripts/slurm/train.sh dynahate configs/models/tinyllama-legacy.yaml
+sbatch scripts/slurm/train.sh dynahate configs/models/tinyllama-structured.yaml
+```
+
+Chained train → train → **batch eval**: see `scripts/slurm/eval_bundle.sh` and `configs/experiments/README.md` (`sbatch --dependency=afterok:…`).
+
+Tune `#SBATCH` headers in `scripts/slurm/train.sh` for your partition and wall time. Some clusters report an older kernel; if the job **finishes training** but SLURM stays `RUNNING` with no new log lines, **`scancel`** after verifying `best_checkpoint/` and `train_metrics.json` are written.
 
 ---
 
 ## Minimal follow-up paper reproduction
 
-1. Train baselines (binary vs structured) on DynaHate using configs in `configs/experiments/paper_matrix/README.md`.
-2. Run `hatlens eval-run` on each checkpoint (`--hatecheck` for robustness, `--rationale` for structured checkpoints with HateXplain).
-3. Collect `metrics.json` + `efficiency.json` from `outputs/eval_runs/`.
-4. Build comparison tables:
+Step-by-step (configs for Groups 1–6: `configs/experiments/paper_matrix/README.md`):
+
+1. **Legacy binary (Group 1)** — `tinyllama-legacy` on `dynahate` and `hateeval`; outputs `outputs/runs/tinyllama/<dataset>/`.
+2. **Binary vs structured (Group 2)** — `tinyllama_binary_compare.yaml` vs `tinyllama-structured.yaml` on `dynahate`.
+3. **Rationale ablation (Group 3)** — `structured_dynahate_no_rationale.yaml` vs full `tinyllama-structured.yaml`.
+4. **Consistency ablation (Group 4)** — `tinyllama-structured.yaml` vs `structured_dynahate_consistency.yaml` on `dynahate`.
+5. **HateCheck robustness (Group 5)** — `eval-run` with `--hatecheck` (and `--in-domain hatecheck` if you only want functional robustness) for the best binary and structured checkpoints.
+6. **PEFT sanity (Group 6)** — `tinyllama.yaml` vs `tinyllama_qlora.yaml` vs `tinyllama_dora.yaml` (QLoRA: `uv sync --extra quant`, GPU).
+
+**Evaluation**
+
+- Template with in-domain, cross pairs (including `dynahate_hatexplain` → `hateeval` metadata), HateCheck, optional rationale, calibration, efficiency:
+
+  ```bash
+  uv run hatelens eval-run --config configs/eval/paper_followup.yaml
+  ```
+
+- Minimal smoke template: `configs/eval/minimal.yaml`.
+
+**Compare runs**
 
 ```bash
 uv run hatelens export-tables outputs/eval_runs/run_a/metrics.json outputs/eval_runs/run_b/metrics.json \
-  --kind binary_vs_structured --out-csv /tmp/compare.csv
+  --kind binary_vs_structured --out-csv compare_binary_structured.csv --out-md compare.md
+uv run hatelens export-tables outputs/eval_runs/*/metrics.json --kind hatecheck --out-csv hatecheck_compare.csv
+uv run hatelens export-tables run1/metrics.json run2/metrics.json --kind efficiency --out-md efficiency.md
 ```
 
-See `configs/experiments/paper_matrix/README.md` for the full command matrix (Groups 1–6).
+`--kind` choices: `binary_vs_structured`, `rationale`, `consistency`, `cross` (rows from each file’s `cross_dataset` block), `hatecheck`, `efficiency`.
 
 ---
 

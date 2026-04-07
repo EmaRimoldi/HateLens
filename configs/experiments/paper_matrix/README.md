@@ -18,12 +18,16 @@ uv run hatelens train configs/models/tinyllama-structured.yaml --dataset dynahat
 
 ## Group 3 — Rationale ablation
 
+Writes to `outputs/runs/tinyllama/structured_dynahate_no_rationale/` (suffix avoids overwriting the full structured run).
+
 ```bash
 uv run hatelens train configs/experiments/paper_matrix/structured_dynahate_no_rationale.yaml --dataset dynahate
 uv run hatelens train configs/models/tinyllama-structured.yaml --dataset dynahate
 ```
 
 ## Group 4 — Consistency ablation
+
+Writes to `outputs/runs/tinyllama/structured_dynahate_consistency/`.
 
 ```bash
 uv run hatelens train configs/models/tinyllama-structured.yaml --dataset dynahate
@@ -41,8 +45,10 @@ uv run hatelens eval-run --checkpoint outputs/runs/tinyllama/structured_dynahate
 
 ## Group 6 — PEFT sanity (LoRA vs QLoRA vs DoRA)
 
+Use `tinyllama_peft_lora.yaml` (r=8, 1 epoch, isolated under `outputs/runs/tinyllama_peft_lora/`) so LoRA matches the QLoRA/DoRA cards and does not overwrite legacy `outputs/runs/tinyllama/dynahate`.
+
 ```bash
-uv run hatelens train configs/models/tinyllama.yaml --dataset dynahate
+uv run hatelens train configs/experiments/paper_matrix/tinyllama_peft_lora.yaml --dataset dynahate
 uv run hatelens train configs/experiments/paper_matrix/tinyllama_qlora.yaml --dataset dynahate
 uv run hatelens train configs/experiments/paper_matrix/tinyllama_dora.yaml --dataset dynahate
 ```
@@ -57,3 +63,7 @@ uv run hatelens export-tables outputs/eval_runs/tinyllama_dynahate_smoke/metrics
 ```
 
 Cross-dataset pairs are **informational labels** for the run; the runner always evaluates the **fixed checkpoint** on each requested **test** split (`cross_dataset` entries use the `test` dataset’s held-out split).
+
+Example third pair (after training `structured_dynahate_hatexplain`): add to your eval YAML or CLI `--cross dynahate_hatexplain:hateeval` — the checkpoint is still the **saved adapter** from the combined training run; the `train` key documents that supervision mix.
+
+See also `configs/eval/paper_followup.yaml` for a template that includes this pair.

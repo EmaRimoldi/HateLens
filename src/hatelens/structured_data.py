@@ -159,15 +159,28 @@ def _tokenize_split(
 
 
 def load_hatexplain_hf() -> DatasetDict:
+    """
+    HateXplain on the Hub still ships a legacy ``hatexplain.py`` loader; ``datasets`` 3.x
+    rejects script-based datasets unless you use the parquet conversion branch.
+    """
     last: Exception | None = None
-    for name in ("bhavitvyahatekxp/hatexplain", "hatexplain"):
+    candidates: list[tuple[str, str | None]] = [
+        ("hatexplain", "refs/convert/parquet"),
+        ("bhavitvyahatekxp/hatexplain", "refs/convert/parquet"),
+        ("hatexplain", None),
+        ("bhavitvyahatekxp/hatexplain", None),
+    ]
+    for name, rev in candidates:
         try:
+            if rev:
+                return load_dataset(name, revision=rev)
             return load_dataset(name)
         except Exception as e:  # noqa: BLE001
             last = e
-            logger.debug("hatexplain load %s failed: %s", name, e)
+            logger.debug("hatexplain load name=%s revision=%s failed: %s", name, rev, e)
     raise RuntimeError(
-        "Could not load HateXplain from Hugging Face. See docs for offline/cache options. "
+        "Could not load HateXplain from Hugging Face. Try: cache with "
+        "`load_dataset('hatexplain', revision='refs/convert/parquet')`, set HF_HOME, or see docs. "
         f"Last error: {last}"
     ) from last
 

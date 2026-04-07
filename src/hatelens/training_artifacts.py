@@ -43,6 +43,33 @@ def write_eval_summary_json(dest_dir: Path, summary: dict[str, Any]) -> Path:
     return out
 
 
+def eval_summary_from_trainer_state(
+    run_dir: Path,
+    *,
+    trainer_metrics: dict[str, Any],
+    training_mode: str = "binary",
+) -> dict[str, Any]:
+    """
+    Snapshot after ``Trainer.train()`` / ``StructuredTrainer.train()``.
+
+    Holds validation metrics emitted by Hugging Face (keys prefixed with ``eval_``).
+    For HateCheck, cross-dataset transfer, calibration, and efficiency, run
+    ``hatelens eval-run`` and use ``outputs/eval_runs/<run>/metrics.json``.
+    """
+    best = (run_dir / "best_checkpoint").resolve()
+    eval_only = {k: v for k, v in trainer_metrics.items() if str(k).startswith("eval_")}
+    return {
+        "training_mode": training_mode,
+        "best_checkpoint": str(best),
+        "trainer_validation_metrics": eval_only,
+        "note": (
+            "Trainer-only validation split metrics. "
+            "Run: uv run hatelens eval-run --checkpoint "
+            f"{best} --run-name <name> [--hatecheck] [--cross ...]"
+        ),
+    }
+
+
 def dump_resolved_config_dict(cfg: dict[str, Any], dest_dir: Path) -> Path:
     """Write a resolved config dict (already merged) as YAML."""
     dest_dir.mkdir(parents=True, exist_ok=True)

@@ -2,6 +2,30 @@
 
 Patterns are aligned with the **agent_swarms** / autoresearch style: one SLURM job per training run, explicit working directory, logs under `outputs/logs/`.
 
+## MIT Engaging (ORCD)
+
+Practical partition/GPU cheatsheet and `sbatch`/`salloc` patterns: [Getting Started on MIT Engaging](https://mabdel-03.github.io/Engaging-ModdedGPT-Blog/getting-started/) (Poggio lab `pi_tpoggio`, `mit_normal_gpu`, BCS pools, `--gres`, scratch, modules).
+
+**HateLens helpers**
+
+- Single job: `scripts/slurm/train.sh`
+- Parallel paper-oriented submissions (override `SLURM_PARTITION` / `SLURM_GRES`): `scripts/slurm/submit_matrix_engaging.sh`
+- Post-train GPU eval batch: `scripts/slurm/eval_bundle.sh`
+
+Example on a general GPU partition:
+
+```bash
+export HATELENS_ROOT="$(pwd)" SLURM_PARTITION=mit_normal_gpu SLURM_GRES=gpu:h100:1
+mkdir -p outputs/logs
+sbatch -p "$SLURM_PARTITION" --gres="$SLURM_GRES" scripts/slurm/train.sh dynahate configs/models/tinyllama-structured.yaml
+```
+
+Poggio lab pool (A100 node `node3807` in that guide):
+
+```bash
+sbatch -p pi_tpoggio --gres=gpu:a100:1 scripts/slurm/train.sh dynahate configs/models/tinyllama-structured.yaml
+```
+
 **GitHub Actions:** the workflow lives at `docs/github-actions-ci.yml` until you copy it to `.github/workflows/ci.yml` (PAT pushes without the `workflow` scope are rejected for workflow files).
 
 ## Prerequisites

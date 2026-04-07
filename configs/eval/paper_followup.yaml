@@ -1,0 +1,42 @@
+# Full follow-up eval: in-domain, cross-transfer labels, HateCheck, calibration, efficiency.
+# The checkpoint is evaluated as-is on each test split; ``train`` in cross_dataset is metadata only.
+#
+# Usage:
+#   uv run hatelens eval-run --config configs/eval/paper_followup.yaml
+#
+# For a model trained on DynaHate + HateXplain, point ``checkpoint`` at
+# ``outputs/runs/tinyllama/structured_dynahate_hatexplain/best_checkpoint`` and keep the
+# cross row below to document “trained with mixed supervision, tested on HateEval”.
+
+# Default: legacy binary checkpoint (exists after Group 1 training). For structured runs, change path.
+checkpoint: "outputs/runs/tinyllama/dynahate/best_checkpoint"
+run_name: "paper_followup_dynahate_binary"
+mode: "auto"
+
+in_domain:
+  - "dynahate"
+  - "hateeval"
+  - "hatecheck"
+
+cross_dataset:
+  - { train: "dynahate", test: "hateeval" }
+  - { train: "hateeval", test: "dynahate" }
+  # Trained on combined structured data (use a dynahate_hatexplain checkpoint path above):
+  - { train: "dynahate_hatexplain", test: "hateeval" }
+
+hatecheck: true
+
+rationale:
+  # Set true only for structured checkpoints (token rationale head). Binary runs record a skip message.
+  enabled: true
+  dataset: "hatexplain"
+  split: "test"
+  max_samples: 128
+
+calibration: true
+efficiency: true
+max_samples: null
+split: "test"
+batch_size: 8
+merge_binary_adapters: true
+quantization: "none"

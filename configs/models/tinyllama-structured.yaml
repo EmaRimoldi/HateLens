@@ -35,3 +35,6 @@ per_device_eval_batch_size: 2
 gradient_accumulation_steps: 4
 fp16: true
 save_total_limit: 2
+
+# Only used when ``HATELENS_SMOKE=1`` or ``smoke_test: true``.
+smoke_max_steps: 8

@@ -25,7 +25,12 @@ from hatelens.registry import resolve_model_id
 from hatelens.structured_collator import StructuredCollator
 from hatelens.structured_data import build_structured_dataset_dict
 from hatelens.structured_trainer import StructuredTrainer
-from hatelens.training_artifacts import write_config_resolved, write_train_metrics_json
+from hatelens.training_artifacts import (
+    eval_summary_from_trainer_state,
+    write_config_resolved,
+    write_eval_summary_json,
+    write_train_metrics_json,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +57,23 @@ def _softmax_probs_hate(logits: np.ndarray) -> np.ndarray:
     e = np.exp(z)
     p = e / e.sum(axis=-1, keepdims=True)
     return p[:, 1]
+
+
+def structured_run_subdir(dataset_key: str, cfg: dict[str, Any]) -> str:
+    """
+    Leaf directory under ``output_dir`` / ``logging_dir`` for this structured run.
+
+    Optional ``structured_output_suffix`` (e.g. ``_no_rationale``) avoids clobbering
+    the default ``structured_<dataset>`` checkpoint when running ablations.
+    """
+
+    base = f"structured_{dataset_key}"
+    suffix = str(cfg.get("structured_output_suffix", "")).strip()
+    if suffix:
+        if not suffix.startswith("_"):
+            suffix = f"_{suffix}"
+        base = f"{base}{suffix}"
+    return base
 
 
 def _is_smoke(cfg: dict[str, Any]) -> bool:
@@ -182,11 +204,12 @@ def run_structured_training(
     out_dir = Path(cfg["output_dir"])
     if not out_dir.is_absolute():
         out_dir = root / out_dir
-    out_dir = out_dir / f"structured_{dataset_key}"
+    run_leaf = structured_run_subdir(dataset_key, cfg)
+    out_dir = out_dir / run_leaf
     log_dir = Path(cfg["logging_dir"])
     if not log_dir.is_absolute():
         log_dir = root / log_dir
-    log_dir = log_dir / f"structured_{dataset_key}"
+    log_dir = log_dir / run_leaf
 
     use_fp16 = torch.cuda.is_available() and bool(cfg.get("fp16", True))
     grad_accum = int(cfg.get("gradient_accumulation_steps", 4))
@@ -214,6 +237,9 @@ def run_structured_training(
         load_best_model_at_end=True,
         metric_for_best_model=metric_name,
         greater_is_better=True,
+        # StructuredCollator sets ``labels`` (copy of main hate label); without this, HF Trainer
+        # has empty label_names and eval metrics / best-model selection break (KeyError eval_f1_macro).
+        label_names=["labels"],
         logging_dir=str(log_dir),
         logging_steps=int(cfg["logging_steps"]),
         report_to="wandb" if use_wandb else "none",
@@ -257,4 +283,12 @@ def run_structured_training(
     model.save_heads(best_path / "structured_heads.pt")
     write_config_resolved(config_path, out_dir)
     write_train_metrics_json(out_dir, train_metrics=dict(train_out.metrics))
+    write_eval_summary_json(
+        out_dir,
+        eval_summary_from_trainer_state(
+            out_dir,
+            trainer_metrics=dict(train_out.metrics),
+            training_mode="structured",
+        ),
+    )
     logger.info("Saved structured checkpoint to %s", best_path)

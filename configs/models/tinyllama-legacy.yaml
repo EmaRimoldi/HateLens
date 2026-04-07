@@ -22,3 +22,6 @@ metric_for_best_model: "f1"
 seed: 123
 model_checkpoint: "PY007/TinyLlama-1.1B-step-50K-105b"
 model_name: "TinyLlama"
+
+# Only used when ``HATELENS_SMOKE=1`` or ``smoke_test: true`` (caps steps for CI/CPU smoke).
+smoke_max_steps: 8

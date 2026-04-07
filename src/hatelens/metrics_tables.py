@@ -37,10 +37,32 @@ def flatten_in_domain_rows(payload: dict[str, Any], *, source: str) -> list[dict
     return rows
 
 
+def flatten_cross_dataset_rows(payload: dict[str, Any], *, source: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    block = payload.get("cross_dataset") or {}
+    for split_key, m in block.items():
+        if not isinstance(m, dict) or "error" in m:
+            continue
+        rows.append(
+            {
+                "source": source,
+                "split": split_key,
+                **{k: v for k, v in m.items() if k not in ("error",)},
+            }
+        )
+    return rows
+
+
 def build_comparison_table(paths: list[Path], *, kind: str) -> pd.DataFrame:
     """
     ``kind``: one of ``binary_vs_structured``, ``rationale``, ``consistency``,
     ``cross``, ``hatecheck``, ``efficiency``.
+
+    ``cross`` reads the ``cross_dataset`` block (train→test splits), not ``in_domain``.
+
+    ``consistency`` uses the same in-domain flattening as ``binary_vs_structured``:
+    pass one ``metrics.json`` per ablation run and compare rows by ``source``
+    (eval run directory name).
 
     Expects each path to be an ``eval_runs/*/metrics.json`` file.
     """
@@ -48,8 +70,10 @@ def build_comparison_table(paths: list[Path], *, kind: str) -> pd.DataFrame:
     for p in paths:
         pl = load_metrics_json(p)
         src = p.parent.name
-        if kind in ("binary_vs_structured", "rationale", "cross"):
+        if kind in ("binary_vs_structured", "rationale"):
             rows.extend(flatten_in_domain_rows(pl, source=src))
+        elif kind == "cross":
+            rows.extend(flatten_cross_dataset_rows(pl, source=src))
         elif kind == "hatecheck":
             hc = pl.get("hatecheck") or {}
             ov = hc.get("overall") if isinstance(hc, dict) else None
