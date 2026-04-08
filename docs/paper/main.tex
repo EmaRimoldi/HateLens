@@ -441,9 +441,9 @@ Binary F1 on the hate class is reported for DynaHate (in-domain) and HateEval
 HateCheck F1 is the overall binary F1 across 3,728 functional test cases
 (zero-shot probe, no HateCheck training data).
 Best value per column in \textbf{bold}.
-Rows marked $\ddagger$ are post-review controls (seed 123).
-Multi-seed variance: HateCheck $92.0\pm1.7$ pp for \textsc{Bin-C};
-$91.8\pm0.6$ pp for \textsc{Struct} (three seeds: 123, 42, 456).}
+Rows marked $\ddagger$ are post-review controls (single seed 123).
+Values shown as $\mu{\scriptstyle\pm\sigma}$ are mean $\pm$ std over three seeds (123, 42, 456);
+all other rows use seed 123 only.}
 \label{tab:main}
 \small
 \setlength{\tabcolsep}{5pt}
@@ -454,10 +454,10 @@ $91.8\pm0.6$ pp for \textsc{Struct} (three seeds: 123, 42, 456).}
  & F1$\uparrow$ & ECE$\downarrow$ & F1$\uparrow$ & ECE$\downarrow$ & F1$\uparrow$ & ECE$\downarrow$ \\
 \midrule
 \textsc{Bin-L}$^\dagger$ & 0.710 & 0.328 & 0.603 & 0.366 & 0.815 & 0.148 \\
-\textsc{Bin-C} & 0.802 & 0.050 & 0.609 & 0.139 & 0.905 & 0.058 \\
+\textsc{Bin-C} & $0.809{\scriptstyle\pm.007}$ & $0.064{\scriptstyle\pm.002}$ & $0.595{\scriptstyle\pm.022}$ & $0.171{\scriptstyle\pm.025}$ & $0.920{\scriptstyle\pm.017}$ & $0.065{\scriptstyle\pm.019}$ \\
 \midrule
 \textsc{Bin-FE}$^\ddagger$ & 0.817 & 0.091 & 0.609 & 0.194 & \textbf{0.937} & \textbf{0.065} \\
-\textsc{Struct} & 0.812 & 0.067 & 0.609 & 0.139 & 0.913 & 0.069 \\
+\textsc{Struct} & $0.814{\scriptstyle\pm.002}$ & $0.066{\scriptstyle\pm.001}$ & $0.602{\scriptstyle\pm.008}$ & $0.170{\scriptstyle\pm.028}$ & $0.918{\scriptstyle\pm.006}$ & $0.069{\scriptstyle\pm.018}$ \\
 \textsc{+Rat}\,(no cons.) & 0.813 & 0.067 & 0.615 & 0.128 & 0.911 & 0.087 \\
 \textsc{+Cons}\,(cons., no rat.) & 0.813 & 0.068 & 0.630 & 0.136 & 0.913 & 0.106 \\
 \textsc{HX-no-rat}$^\ddagger$ & \textbf{0.817} & 0.092 & \textbf{0.645} & 0.199 & 0.922 & 0.083 \\
