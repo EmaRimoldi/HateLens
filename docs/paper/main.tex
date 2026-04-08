@@ -1,6 +1,6 @@
 \documentclass{article}
 
-% ICML 2026 style — replace with target venue style file before submission
+% NeurIPS 2025 style — replace with target venue style file before submission
 \usepackage[preprint]{neurips_2025}
 
 \usepackage[utf8]{inputenc}
@@ -27,8 +27,8 @@
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\title{Beyond Binary Labels: Structured Multi-Task Supervision Improves\\
-Robustness of Lightweight Hate Speech Detection}
+\title{Beyond Binary Labels: Structured Multi-Task Supervision and\\
+Functional Robustness of Lightweight Hate Speech Detection}
 
 % Anonymous for blind review — fill in before camera-ready
 \author{%
@@ -40,26 +40,32 @@ Robustness of Lightweight Hate Speech Detection}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{abstract}
-We propose \method{}, a structured multi-task learning framework that extends
-parameter-efficient fine-tuning (PEFT) of small decoder language models for
-hate speech detection beyond binary classification.
+We propose \method{}, a structured multi-task extension of parameter-efficient
+fine-tuning (PEFT) of small decoder language models for hate speech detection.
 Building on \citet{sen2024hatetinyllm}, who demonstrated that LoRA-tuned
 TinyLlama-1.1B achieves competitive binary accuracy on DynaHate and HateEval,
 we ask whether jointly predicting auxiliary attributes—hate type, target group,
 and explicitness—together with optional rationale-token supervision and
-pair-consistency regularization, improves out-of-distribution robustness.
+pair-consistency regularization, is empirically associated with improved
+out-of-distribution robustness.
 We train on DynaHate (41k entries) with optional HateXplain joint data and
 evaluate on three benchmarks: in-domain test splits, cross-benchmark transfer
 to HateEval, and functional robustness via HateCheck (3,728 structured test cases).
-Our structured model raises HateCheck F1 from 0.815 to 0.921 ($+10.6$ pp),
-in-domain DynaHate F1 from 0.710 to 0.815 ($+10.5$ pp), and cross-benchmark
-HateEval F1 from 0.603 to 0.615—all with only 780K trainable parameters.
-Ablations show that auxiliary objective supervision is the primary driver
-of functional robustness; pair-consistency regularization further improves
-cross-benchmark transfer.
-A controlled PEFT comparison confirms that LoRA, QLoRA, and DoRA reach
-within 1 pp of each other on HateCheck (F1 0.878, 0.870, 0.880), validating
-parameter-efficient training for deployment.
+Compared to a controlled binary baseline (\textsc{Bin-C}) using identical
+hyperparameters, our best structured model (\textsc{Joint}) improves HateCheck F1
+by $+1.6$ pp (0.905 → 0.921) and DynaHate F1 by $+1.3$ pp (0.802 → 0.815),
+with only 780K trainable parameters.
+When compared to the legacy binary replication (\textsc{Bin-L}), the cumulative
+improvement reaches $+10.6$ pp on HateCheck—but Section~\ref{sec:results} shows
+that most of this gap is explained by training configuration differences, not by
+the structured objectives alone.
+Ablations are consistent with auxiliary objectives contributing to robustness
+and pair-consistency helping cross-benchmark transfer, though a single random
+seed and confounded controls mean these associations cannot yet be treated as
+causal claims.
+A controlled PEFT comparison (LoRA, QLoRA, DoRA) on a binary setup shows all
+three variants within 1 pp on HateCheck F1 (0.870–0.880), supporting the use of
+quantized adapters for deployment.
 Code and data loaders are publicly available.\footnote{\url{https://github.com/EmaRimoldi/HateLens}}
 \end{abstract}
 
@@ -77,48 +83,60 @@ compositional rephrasing that preserves hateful intent while evading keyword
 filters \citep{rottger2021hatecheck}.
 
 \paragraph{The gap in existing work.}
-\citet{sen2024hatetinyllm} showed that LoRA fine-tuning of small decoder language
-models (TinyLlama, Phi-2, OPT-1.3B) achieves over 80\% accuracy on DynaHate
-\citep{vidgen2021dynahate} and HateEval \citep{basile2019semeval}—competitive with
-models ten times larger.
-Their work, however, focused exclusively on binary classification: is a post
-hateful or not?
-Binary supervision provides no signal about \emph{why} a model should classify
-a post as hateful, nor about the \emph{type} or \emph{target} of the hate.
-This absence of auxiliary structure leaves two problems unaddressed:
-(1) models that learn surface features instead of semantic content fail on
-adversarially generated cases that HateCheck targets, and
-(2) models trained on a single dataset transfer poorly to out-of-distribution
-benchmarks even when overall accuracy remains high.
+\citet{sen2024hatetinyllm} showed that LoRA fine-tuning of small decoder
+language models (TinyLlama, Phi-2, OPT-1.3B) achieves over 80\% accuracy on
+DynaHate \citep{vidgen2021dynahate} and HateEval \citep{basile2019semeval}—
+competitive with models ten times larger.
+Their work focuses exclusively on binary classification: is a post hateful or not?
+Binary supervision provides no signal about \emph{why} a post should be
+classified as hateful, nor about the \emph{type} or \emph{target} of the hate.
+Two practical problems follow from this: (1) models that latch onto surface
+features—slur presence, identity terms—fail on adversarially generated edge
+cases of the kind HateCheck probes; (2) binary models trained on a single dataset
+transfer poorly to out-of-distribution benchmarks even when in-domain accuracy
+is high.
 
 \paragraph{Our approach.}
 We extend TinyLlama+LoRA with \emph{structured multi-task supervision}: a shared
 PEFT backbone is joined by lightweight heads that predict the primary hate label,
-the hate type (e.g., derogation, animosity, dehumanization), the target group
-(e.g., race, gender), and the explicitness of expression.
+the hate type (\eg derogation, animosity, dehumanization), the target group
+(\eg race, gender), and the explicitness of expression.
 When HateXplain rationale annotations are available, we add token-level rationale
 supervision \citep{mathew2021hatexplain}.
-When DynaHate pair metadata is available, we apply pair-consistency regularization
-that encourages logically entailed pairs to receive consistent predictions.
+When DynaHate contrastive pair metadata is available, we apply pair-consistency
+regularization.
 The backbone remains frozen except for LoRA adapters on the key/value projections,
-keeping the total number of trainable parameters at 780K.
+keeping trainable parameters at 780K.
+
+Multi-task and multi-aspect hate detection has been studied before, largely with
+encoder models and shared tasks (see Section~\ref{sec:related}).
+Our contribution is narrower but practically motivated: we bring structured
+supervision into the tiny-decoder PEFT regime, quantify the controlled effect
+against a matched binary baseline, and evaluate robustness with HateCheck—a
+combination that has not been systematically reported in this setup.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item We demonstrate that structured multi-task supervision with lightweight auxiliary
-    heads improves HateCheck functional robustness by $+10.6$ pp (F1: 0.815 → 0.921)
-    over a well-matched binary baseline using identical PEFT configuration.
-  \item We show that joint training with HateXplain provides additional robustness
-    gains ($+0.8$ pp HateCheck F1) while preserving in-domain performance.
-  \item We present ablation studies revealing that auxiliary-objective supervision
-    is the primary driver of robustness, with pair-consistency regularization
-    further improving cross-benchmark transfer ($+2.1$ pp HateEval F1 over the
-    standard structured model).
-  \item We report a controlled PEFT variant comparison (LoRA, QLoRA, DoRA) showing
-    near-identical HateCheck performance ($\leq 1$ pp spread), validating the
-    choice of lightweight adapters for deployment.
-  \item We release \method{}, an open codebase with reproducible training pipelines,
-    unified evaluation, calibration metrics (ECE, Brier score), and all data loaders.
+  \item We report that structured multi-task supervision is associated with
+    improved HateCheck robustness ($+1.6$ pp F1: 0.905 → 0.921, \textsc{Bin-C}
+    vs.\ \textsc{Joint}) and DynaHate in-domain F1 ($+1.3$ pp) over a
+    controlled binary baseline using identical PEFT configuration and the same
+    training data.
+    The larger $+10.6$ pp gain vs.\ the legacy baseline (\textsc{Bin-L}) is
+    partly attributable to training-configuration differences rather than
+    structured objectives alone.
+  \item We present ablation studies consistent with pair-consistency
+    regularization improving cross-benchmark transfer to HateEval ($+2.1$ pp
+    over \textsc{Struct}), and joint HateXplain training adding $+0.8$ pp
+    HateCheck F1.
+    Because controls are partially confounded (Section~\ref{sec:limits}),
+    we report these as empirical associations, not causal claims.
+  \item We compare LoRA, QLoRA, and DoRA under controlled binary conditions,
+    finding all three within 1 pp on HateCheck F1 and validating quantized
+    adapters for deployment.
+  \item We release \method{}, an open codebase with reproducible pipelines,
+    unified evaluation including calibration metrics (ECE, Brier score),
+    and all data loaders.
 \end{itemize}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -131,7 +149,7 @@ BERT-based encoders established strong baselines for automated hate detection
 \citet{rottger2021hatecheck} introduced HateCheck to expose systematic weaknesses
 in these models—including over-sensitivity to identity terms and failure on
 negated hate—finding critical errors in all tested systems.
-More recent work has shifted toward encoder-only fine-tuning with dataset
+More recent work shifted toward encoder-only fine-tuning with dataset
 unification: \citet{elbahnasawi2025lora} combine LoRA-tuned BERTweet with
 rule-based pre-filtering and continuous learning, achieving macro F1 0.85
 with only 1.87M trainable parameters on unified datasets.
@@ -144,15 +162,21 @@ pretrained Mixtral baseline.
 Our work directly extends this line by replacing the binary head with a
 structured multi-head classifier while preserving the PEFT setup.
 
-\paragraph{Multi-task hate detection.}
-DynaHate includes fine-grained type and target annotations that binary training
-ignores \citep{vidgen2021dynahate}.
-HateXplain provides rationale spans that ground decisions in textual evidence
-\citep{mathew2021hatexplain}.
-Multi-task learning over these labels has been explored in shared tasks \citep{prama2025hatesense},
-but typically with large encoder or decoder LLMs.
-Our work demonstrates that structured multi-task objectives improve robustness
-with a 1.1B decoder model and fewer than 1M trainable parameters.
+\paragraph{Multi-task and multi-aspect hate detection.}
+Multi-task supervision for hate speech is established prior work.
+\citet{vidgen2021dynahate} already provide fine-grained type and target annotations
+in DynaHate; joint hate+target learning has been explored since \citep{basile2019semeval}.
+\citet{mathew2021hatexplain} introduced HateXplain specifically to support
+rationale-annotated and target-annotated supervision.
+Multi-task learning over hate type, target, and severity has been explored in
+recent shared tasks \citep{prama2025hatesense}.
+Contrastive and pair-based training for cross-dataset generalization also has
+precedent in the NLI literature \citep{gardner2020contrast}.
+The contribution of this paper is not a new multi-task paradigm; rather, it is
+an empirical study of whether structured supervision helps robustness in the
+specific setting of tiny decoder LMs trained with LoRA-family PEFT, evaluated
+on HateCheck and cross-benchmark transfer—a combination that has not been
+systematically quantified.
 
 \paragraph{PEFT variants.}
 LoRA \citep{hu2022lora} has become the de facto PEFT method for classification.
@@ -160,34 +184,42 @@ QLoRA \citep{dettmers2023qlora} extends this with 4-bit quantization for memory
 efficiency.
 DoRA \citep{liu2024dora} decomposes weight updates into magnitude and direction
 components.
-Their relative performance on downstream hate detection tasks has not been
-systematically compared under controlled conditions; we address this gap.
+Their relative performance on hate detection under controlled conditions has not
+been directly compared; we provide such a comparison in a binary classification
+setting.
 
 \paragraph{Calibration and transfer in hate detection.}
 Model calibration—the alignment between predicted confidence and true accuracy—
 is rarely reported in hate detection benchmarks despite its relevance for
 deployment \citep{guo2017calibration}.
-Cross-dataset transfer from one hate speech benchmark to another is also
-infrequently measured.
-We report Expected Calibration Error (ECE) and Brier score alongside standard
-classification metrics for all models.
+We report Expected Calibration Error (ECE) and Brier score alongside
+standard classification metrics for all models.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Method}
 \label{sec:method}
 
 \subsection{Backbone and PEFT}
-We use \tl (1.1B parameters, PY007/TinyLlama-1.1B-step-50K-105b) as the
-backbone decoder LM.
+We use \tl (1.1B parameters, \texttt{PY007/TinyLlama-1.1B-step-50K-105b}) as
+the backbone decoder LM.
 For binary classification experiments we attach a sequence-classification
-head via \texttt{AutoModelForSequenceClassification} (\texttt{task\_type=SEQ\_CLS}).
+head via \texttt{AutoModelForSequenceClassification}
+(\texttt{task\_type=SEQ\_CLS}).
 For structured experiments we use \texttt{task\_type=FEATURE\_EXTRACTION} and
 replace the classification head with the multi-head architecture described below.
+
+\emph{Note on head path.}
+Binary and structured models differ in both the head architecture and the
+internal PEFT task type (\texttt{SEQ\_CLS} vs.\ \texttt{FEATURE\_EXTRACTION}).
+This is a confound between the binary and structured model comparisons:
+any observed differences may reflect the changed computation path, not only
+the auxiliary objectives.
+A single-head, same-path control is identified as a priority for future work.
 
 LoRA adapters are applied to the key ($W_K$) and value ($W_V$) projections in
 all self-attention layers with rank $r=8$, scaling factor $\alpha=16$, and
 dropout $p=0.05$.
-This yields 780,669 trainable parameters out of 1.04B total (0.075\%).
+This yields 780,669 trainable parameters (0.075\% of 1.04B total).
 
 \subsection{Structured Multi-Head Classifier}
 \label{sec:structured}
@@ -196,12 +228,23 @@ The structured model appends four lightweight linear heads to the last-layer
 [EOS] token representation:
 
 \begin{itemize}
-  \item \textbf{Main head} ($h_\text{main}$): binary hate vs.\ not-hate.
+  \item \textbf{Main head} ($h_\text{main}$): binary hate vs.\ not-hate,
+    trained with cross-entropy.
   \item \textbf{Hate-type head} ($h_\text{type}$): 5-way classification
-    (Animosity, Derogation, Dehumanization, Threatening, Support for Hateful Entities).
-  \item \textbf{Target head} ($h_\text{target}$): multi-label over target groups
-    (race, gender, religion, sexual orientation, disability, other).
-  \item \textbf{Explicitness head} ($h_\text{exp}$): binary explicit vs.\ implicit.
+    (Animosity, Derogation, Dehumanization, Threatening, Support for Hateful
+    Entities) from DynaHate type annotations, active on hateful samples only,
+    trained with cross-entropy.
+  \item \textbf{Target head} ($h_\text{target}$): multi-label prediction over
+    target groups (race, gender, religion, sexual orientation, disability,
+    other) derived from DynaHate target annotations, trained with
+    \emph{binary cross-entropy per label} (BCE-with-logits).
+  \item \textbf{Explicitness head} ($h_\text{exp}$): binary explicit
+    vs.\ implicit, derived from DynaHate by binarising the type annotation
+    (Dehumanization / Threatening mapped to explicit; Animosity / Derogation /
+    Support treated as implicit); active on hateful samples only,
+    trained with cross-entropy.
+    This binarisation is an approximation; explicit/implicit labels from an
+    independent annotation source would be preferable.
 \end{itemize}
 
 \noindent The combined loss is:
@@ -212,13 +255,13 @@ The structured model appends four lightweight linear heads to the last-layer
                + \lambda_c\,\mathcal{L}_\text{consist},
   \label{eq:loss}
 \end{equation}
-where $\mathcal{L}_\text{aux}$ is the sum of cross-entropy losses over the
-type, target, and explicitness heads (active for hateful samples only);
-$\mathcal{L}_\text{rationale}$ is token-level binary cross-entropy over
-HateXplain rationale spans (gated on availability);
-$\mathcal{L}_\text{consist}$ is the consistency loss over DynaHate contrastive
-pairs (gated on pair metadata availability).
-We set $\lambda_\text{aux}=0.5$, $\lambda_r=0.3$, $\lambda_c=0.2$.
+where $\mathcal{L}_\text{aux}$ is the sum of the type, target, and explicitness
+head losses (gated on hateful examples);
+$\mathcal{L}_\text{rationale}$ is token-level BCE over HateXplain rationale
+spans (gated to zero when no span annotation is available for a sample);
+$\mathcal{L}_\text{consist}$ is the pair-consistency margin loss (defined in
+Section~\ref{sec:consistency}, gated on contrastive pair availability).
+Loss weights are $\lambda_\text{aux}=0.5$, $\lambda_r=0.3$, $\lambda_c=0.2$.
 
 \subsection{Rationale Supervision}
 \label{sec:rationale}
@@ -226,26 +269,48 @@ We set $\lambda_\text{aux}=0.5$, $\lambda_r=0.3$, $\lambda_c=0.2$.
 HateXplain provides annotator-marked token spans that justify a hate label
 \citep{mathew2021hatexplain}.
 We align these spans to the tokenizer's subword vocabulary and compute
-token-level binary cross-entropy over the rationale head output.
+token-level BCE over a dedicated rationale head output.
 When HateXplain data is used in joint training with DynaHate, DynaHate
-examples receive a zero rationale loss (the mask gates the term to zero).
+examples have no span annotations and receive zero rationale loss (the mask
+gates the term to zero).
+The \textsc{+Cons} ablation (DynaHate only, with consistency enabled) also has
+$\lambda_r > 0$ in the config, but since no DynaHate sample carries span
+annotations, the rationale term evaluates to zero throughout training.
+The consistency-only effect is therefore cleanly isolated in \textsc{+Cons},
+but the rationale term is not independently ablated from the data-mixing
+effect in \textsc{Joint} (see Section~\ref{sec:limits}).
 
 \subsection{Pair-Consistency Regularization}
 \label{sec:consistency}
 
 DynaHate records contrastive pairs: minimally different examples where the
-label is intended to flip.
-For each available pair $(x_i, x_j)$ with gold labels $y_i \neq y_j$,
-we add a margin loss that pushes the model to assign higher probability to
-the correct label by at least a fixed margin $m=0.1$.
+intended label flips.
+For each available pair $(x_i, x_j)$ with gold labels $y_i \neq y_j$, we
+apply a margin loss:
+\begin{equation}
+  \mathcal{L}_\text{consist}(x_i, x_j)
+    = \max\!\bigl(0,\; m - (p_{y_i}(x_i) - p_{y_i}(x_j))\bigr),
+\end{equation}
+with margin $m=0.1$, where $p_{y}(x)$ is the model's predicted probability
+for the gold label $y$.
+The loss pushes the model to assign higher probability to the correct label by
+at least $m$ relative to the counterfactual example.
 Non-hateful halves of pairs are treated as hard negatives.
+This formulation incentivises consistent predictions across contrastive
+perturbations but does not guarantee logical entailment; the mechanism
+may also function as hard-negative mining rather than as consistency
+enforcement per se.
 
 \subsection{Training Details}
 All experiments use AdamW \citep{loshchilov2019adamw} with learning rate
-$2 \times 10^{-4}$, weight decay 0.01, batch size 8 (per-device 2, gradient
-accumulation 4), mixed-precision (FP16), and a linear warmup.
+$2 \times 10^{-4}$, weight decay 0.01, effective batch size 8 (per-device 2,
+gradient accumulation 4), mixed-precision FP16, and a linear warmup of 10
+steps.
 Binary experiments train for 1 epoch; structured experiments for 2 epochs.
-The best checkpoint is selected by macro-F1 on the development set (seed 123).
+The best checkpoint is selected by macro-F1 on the development set.
+\emph{All experiments use a single random seed (123); multi-seed variance
+is not reported and the effect of seed on the smaller observed deltas is
+unknown.}
 Training runs on a single NVIDIA A100-80GB GPU.
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -256,20 +321,23 @@ Training runs on a single NVIDIA A100-80GB GPU.
 
 \textbf{DynaHate} \citep{vidgen2021dynahate} contains 41,144 adversarially
 generated English posts (54\% hate) with fine-grained type (5 categories) and
-target annotations created over four rounds of human-and-model-in-the-loop collection.
+target annotations created over four rounds of human-and-model-in-the-loop
+collection.
 We use the official train/dev/test splits (v0.2.3).
 
-\textbf{HateEval} \citep{basile2019semeval} is the SemEval-2019 Task 5
-dataset targeting hate against women and immigrants on Twitter
-($\sim$9,000 English entries).
+\textbf{HateEval} \citep{basile2019semeval} is the SemEval-2019 Task 5 dataset
+targeting hate against women and immigrants on Twitter ($\sim$9,000 English
+entries).
 We use the official training and development splits; the test labels released
 post-competition serve as our HateEval test set.
 
 \textbf{HateXplain} \citep{mathew2021hatexplain} provides 9,055 posts annotated
-from multiple perspectives with hate/offensive/normal labels and token-level
-rationale spans.
-We map hate and offensive to \texttt{hate} (consistent with binary training
-targets) and use the dataset for joint structured training only.
+with hate/offensive/normal labels and token-level rationale spans.
+We map hate and offensive to \texttt{hate} and use the dataset for joint
+structured training only.
+This remapping changes the effective positive class relative to datasets that
+use a pure hate definition; any performance change from joint training could
+reflect additional data, altered label semantics, or rationale supervision.
 
 \textbf{HateCheck} \citep{rottger2021hatecheck} is a suite of 3,728 functional
 tests across 29 functionalities.
@@ -278,26 +346,26 @@ appear in training.
 
 \subsection{Models}
 
-Table~\ref{tab:models} summarizes the seven experimental configurations.
+Table~\ref{tab:models} summarises the six experimental configurations.
 
 \begin{table}[t]
 \centering
 \caption{Experimental configurations.
 All use \tl{}+LoRA ($r=8$, $\alpha=16$) unless stated otherwise.
-\dag~Binary legacy (exp from \citet{sen2024hatetinyllm} re-implementation).}
+\dag~Binary legacy: re-implementation of the \citet{sen2024hatetinyllm}
+DynaHate setting; note the anomalously short training time (Table~\ref{tab:efficiency}).}
 \label{tab:models}
 \small
-\begin{tabular}{llll}
+\begin{tabular}{lllp{5.5cm}}
 \toprule
-ID & Name & Training data & Objectives \\
+ID & Name & Training data & Head / Objectives \\
 \midrule
-\textsc{Bin-L} & Binary legacy$^\dag$ & DynaHate & Binary CE \\
-\textsc{Bin-C} & Binary compare & DynaHate & Binary CE \\
-\textsc{Struct} & Structured & DynaHate & Eq.~\ref{eq:loss} (no rat., no cons.) \\
-\textsc{+Rat} & Struct + rationale & DynaHate + HateXplain & Eq.~\ref{eq:loss} (rat., no cons.) \\
-\textsc{+Cons} & Struct + consistency & DynaHate & Eq.~\ref{eq:loss} (rat., cons.) \\
-\textsc{Joint} & Struct + HX joint & DynaHate + HateXplain & Eq.~\ref{eq:loss} (rat., cons.) \\
-\textsc{DoRA} & Struct / DoRA & DynaHate & Binary CE, DoRA adapters \\
+\textsc{Bin-L} & Binary legacy$^\dag$ & DynaHate & \texttt{SEQ\_CLS} head; binary CE \\
+\textsc{Bin-C} & Binary compare & DynaHate & \texttt{SEQ\_CLS} head; binary CE; 2 epochs \\
+\textsc{Struct} & Structured & DynaHate & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (no rat., no cons.) \\
+\textsc{+Rat} & Struct + rationale & DynaHate + HateXplain & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (rat. from HX, no cons.) \\
+\textsc{+Cons} & Struct + consistency & DynaHate & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (cons. only; rat. term $=0$) \\
+\textsc{Joint} & Struct + HX joint & DynaHate + HateXplain & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (rat. from HX, cons.) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -317,87 +385,115 @@ cross-dataset, and HateCheck splits in a single pass.
 \subsection{Main Comparison: Binary vs.\ Structured}
 
 Table~\ref{tab:main} presents the main results.
-The binary legacy model (\textsc{Bin-L}) replicates prior work, achieving
-DynaHate F1 0.710 and HateCheck F1 0.815 with a single binary cross-entropy
-objective.
-The controlled binary comparison model (\textsc{Bin-C}), trained with the
-same hyperparameters as the structured experiments, raises DynaHate F1 to
-0.802 and HateCheck F1 to 0.905—demonstrating that training duration and
-configuration account for some of the gap.
+\textbf{Understanding the two binary baselines.}
+\textsc{Bin-L} is a re-implementation of \citet{sen2024hatetinyllm} and
+serves as a reference point; it achieves DynaHate F1 0.710 and HateCheck F1
+0.815.
+However, \textsc{Bin-L} trained for only 22 seconds (Table~\ref{tab:efficiency}),
+suggesting a configuration artefact rather than a full training run.
+\textsc{Bin-C} provides a fair comparison for the structured models: it uses
+the same hyperparameter schedule (2 epochs, same batch size and LR) but with
+the binary \texttt{SEQ\_CLS} head.
+\textsc{Bin-C} raises DynaHate F1 to 0.802 and HateCheck F1 to 0.905, a large
+jump that is attributable to training configuration alone.
 
-The structured model (\textsc{Struct}) further improves DynaHate F1 to
-0.812 (+1.0 pp over \textsc{Bin-C}) and HateCheck F1 to 0.913 (+0.8 pp),
-establishing that auxiliary objectives provide consistent gains beyond
-configuration differences.
-The joint model (\textsc{Joint}), which adds HateXplain data for rationale
-and consistency supervision, achieves the best overall HateCheck F1 of 0.921—
-a total improvement of \textbf{+10.6 pp} over the binary legacy baseline.
+\textbf{Structured vs.\ controlled binary.}
+The structured model (\textsc{Struct}) raises DynaHate F1 by $+1.0$ pp and
+HateCheck F1 by $+0.8$ pp over \textsc{Bin-C}, with no improvement on HateEval
+cross-benchmark transfer.
+The joint model (\textsc{Joint}) achieves the best overall HateCheck F1 of
+0.921, a $+1.6$ pp gain over \textsc{Bin-C} and $+10.6$ pp over the legacy
+\textsc{Bin-L}.
+Readers should interpret $+10.6$ pp with caution: most of this gap is explained
+by the configuration difference between \textsc{Bin-L} and \textsc{Bin-C}, not
+by the structured objectives.
 
 \begin{table}[t]
 \centering
 \caption{Main comparison results.
-Binary F1 on the hate class is reported for DynaHate test and HateEval.
-HateCheck F1 is the overall binary F1 across all 3,728 functional test cases.
-Best value per column in \textbf{bold}.}
+Binary F1 on the hate class is reported for DynaHate (in-domain) and HateEval
+(cross-benchmark transfer, trained on DynaHate).
+HateCheck F1 is the overall binary F1 across 3,728 functional test cases
+(zero-shot probe, no HateCheck training data).
+Best value per column in \textbf{bold}.
+All experiments use a single seed (123).}
 \label{tab:main}
 \small
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{lcccccc}
 \toprule
-\multirow{2}{*}{Model} & \multicolumn{2}{c}{DynaHate} & \multicolumn{2}{c}{HateEval (cross)} & \multicolumn{2}{c}{HateCheck} \\
+\multirow{2}{*}{Model} & \multicolumn{2}{c}{DynaHate (in-domain)} & \multicolumn{2}{c}{HateEval (cross-bench.)} & \multicolumn{2}{c}{HateCheck (0-shot)} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
  & F1$\uparrow$ & ECE$\downarrow$ & F1$\uparrow$ & ECE$\downarrow$ & F1$\uparrow$ & ECE$\downarrow$ \\
 \midrule
-\textsc{Bin-L} & 0.710 & 0.328 & 0.603 & 0.366 & 0.815 & 0.148 \\
+\textsc{Bin-L}$^\dagger$ & 0.710 & 0.328 & 0.603 & 0.366 & 0.815 & 0.148 \\
 \textsc{Bin-C} & 0.802 & 0.050 & 0.609 & 0.139 & 0.905 & 0.058 \\
 \textsc{Struct} & 0.812 & 0.067 & 0.609 & 0.139 & 0.913 & 0.073 \\
 \textsc{+Rat}\,(no cons.) & 0.813 & 0.067 & 0.615 & 0.128 & 0.911 & 0.087 \\
-\textsc{+Cons}\,(rat.+cons.) & 0.813 & 0.068 & 0.630 & 0.136 & 0.913 & 0.106 \\
-\textsc{Joint} & \textbf{0.815} & \textbf{0.050} & 0.615 & \textbf{0.128} & \textbf{0.921} & \textbf{0.083} \\
+\textsc{+Cons}\,(cons., no rat.) & 0.813 & 0.068 & 0.630 & 0.136 & 0.913 & 0.106 \\
+\textsc{Joint} & \textbf{0.815} & \textbf{0.050} & 0.615 & \textbf{0.128} & \textbf{0.921} & 0.083 \\
 \bottomrule
+\multicolumn{7}{l}{\small$\dagger$~Anomalously short training run (22 s); see Table~\ref{tab:efficiency}.}
 \end{tabular}
 \end{table}
 
 \paragraph{Cross-benchmark transfer.}
-Training on DynaHate and evaluating on HateEval (\textsc{Bin-L}: F1 0.603)
-represents a hard domain-shift challenge.
-Structured objectives raise this to 0.609 (\textsc{Struct}), and adding
-pair-consistency regularization (\textsc{+Cons}) provides the largest
-single-source improvement to 0.630 ($+2.7$ pp over \textsc{Struct}).
+Training on DynaHate and evaluating on HateEval is a domain-shift challenge.
+Structured objectives alone (\textsc{Struct}) do not improve over \textsc{Bin-C}
+(both 0.609).
+Adding pair-consistency (\textsc{+Cons}) provides the largest observed gain to
+0.630 ($+2.1$ pp over \textsc{Struct}).
 
 \subsection{Ablation Study}
 
-Figure~\ref{fig:ablation} visualizes the incremental contribution of each
+Figure~\ref{fig:ablation} visualises the incremental contribution of each
 objective.
-The largest single gain over the binary baseline comes from introducing
-auxiliary structured heads ($+9.8$ pp HateCheck F1).
-Pair-consistency regularization adds $+0.0$ pp on HateCheck but $+2.7$ pp on
-HateEval cross-benchmark transfer, suggesting it primarily helps generalization
-rather than in-domain robustness.
-Joint HateXplain training adds $+0.8$ pp HateCheck F1 without degrading
-in-domain performance, confirming that rationale supervision from a complementary
-dataset is additive.
+Relative to \textsc{Bin-C}, the structured head alone (\textsc{Struct})
+contributes $+0.8$ pp HateCheck F1 and $+1.0$ pp DynaHate F1.
+Pair-consistency regularization (\textsc{+Cons}) contributes $+0.0$ pp on
+HateCheck but $+2.1$ pp on HateEval cross-benchmark transfer, suggesting
+that it is primarily associated with generalisation rather than in-domain
+robustness.
+Joint HateXplain training (\textsc{Joint}) adds a further $+0.8$ pp on
+HateCheck F1.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\columnwidth]{../paper_figures/fig1_main_comparison.pdf}
 \caption{F1 on DynaHate (in-domain), HateEval (cross-benchmark), and HateCheck
-(functional robustness) for each model variant.
-Structured objectives (all non-\textsc{Bin} variants) consistently outperform binary
-baselines across all three evaluation conditions.}
+(zero-shot functional robustness) for each model variant.
+Structured models show consistent but modest gains over the matched binary
+baseline (\textsc{Bin-C}).
+\textsc{Bin-L} is included for reference but differs in training configuration.
+All results are single-seed (123).}
 \label{fig:ablation}
 \end{figure}
 
+\textbf{Interpretation caveats.}
+The ablation controls are partially confounded: \textsc{+Rat} and \textsc{Joint}
+add HateXplain data \emph{and} rationale supervision simultaneously;
+\textsc{Struct} vs.\ \textsc{Bin-C} differs in head path
+(\texttt{FEAT\_EXTR} vs.\ \texttt{SEQ\_CLS}) and training duration (2 epochs
+vs.\ 2 epochs, but different loss landscape).
+A clean causal attribution would require same-architecture single-head controls,
+extra-data-only controls (HateXplain without rationale loss), random-label
+controls for the structured heads, and multi-seed evaluation.
+These are missing from the current study; Section~\ref{sec:limits} elaborates.
+
 \subsection{PEFT Variant Comparison}
 
-Table~\ref{tab:peft} compares LoRA, QLoRA, and DoRA under controlled conditions
-(identical hyperparameters, 1 training epoch on DynaHate, binary head,
-evaluated on HateCheck).
+Table~\ref{tab:peft} compares LoRA, QLoRA, and DoRA under matched conditions:
+1 training epoch, binary \texttt{SEQ\_CLS} head, DynaHate training, evaluated
+on HateCheck.
+This comparison is \emph{not} on the proposed structured model; it is a
+standalone sanity check on adapter choice in the binary regime.
 
 \begin{table}[t]
 \centering
 \caption{PEFT variant comparison on HateCheck (binary F1).
-All models use \tl{} backbone, $r=8$, $\alpha=16$.}
+All models use \tl{} backbone, $r=8$, $\alpha=16$, binary \texttt{SEQ\_CLS} head,
+1 training epoch, single seed.
+This experiment is separate from the structured model.}
 \label{tab:peft}
 \small
 \begin{tabular}{lccc}
@@ -411,104 +507,151 @@ DoRA & \textbf{0.880} & \textbf{0.886} & 0.071 \\
 \end{tabular}
 \end{table}
 
-All three variants perform within 1 pp of each other on HateCheck F1
-(range: 0.870–0.880).
-QLoRA achieves near-identical accuracy to full-precision LoRA while
-reducing GPU memory footprint by approximately 50\%, making it suitable
-for inference on consumer hardware.
-DoRA marginally outperforms LoRA in F1 and AUC-ROC but shows slightly
-higher ECE, suggesting a minor calibration trade-off.
+All three variants perform within 1 pp of each other (range: 0.870–0.880).
+QLoRA achieves near-identical F1 while reducing peak GPU memory by $\approx$50\%.
+DoRA marginally outperforms LoRA in F1 and AUC-ROC at the cost of slightly
+higher ECE.
+Whether these rankings hold in the structured setting remains to be tested.
 
 \subsection{Efficiency Analysis}
 
-Table~\ref{tab:efficiency} reports efficiency metrics measured on the
-A100-80GB evaluation machine.
+Table~\ref{tab:efficiency} reports efficiency metrics.
 
 \begin{table}[t]
 \centering
-\caption{Efficiency comparison. Trainable params include PEFT adapters only.
-Checkpoint size for \textsc{Bin} models reflects the classification head only;
-\textsc{Struct} also includes all prediction heads.}
+\caption{Efficiency comparison (single A100-80GB).
+\dag~Trainable-parameter export was not captured for binary models in this
+run (an artefact of the evaluation pipeline); both \textsc{Bin-L} and
+\textsc{Bin-C} use the same LoRA $r=8$ adapters as the structured models
+and add approximately 780K trainable parameters.
+Checkpoint size for binary models reflects the classification head delta only
+(4.3 MB); the full binary model size is identical to the backbone.}
 \label{tab:efficiency}
 \small
-\begin{tabular}{lrrrl}
+\begin{tabular}{lrcrl}
 \toprule
 Model & Train. params & Ckpt (MB) & Train (s) & Infer. lat. (ms/ex.) \\
 \midrule
-\textsc{Bin-L} & 0\phantom{,000} & 4.3 & 22 & 16.9 \\
-\textsc{Bin-C} & 0\phantom{,000} & 4.3 & 805 & 17.0 \\
+\textsc{Bin-L}$^\dag$ & {\small(not cap.)} & 4.3 & \textit{22\,(anom.)} & 16.9 \\
+\textsc{Bin-C}$^\dag$ & {\small(not cap.)} & 4.3 & 805 & 17.0 \\
 \textsc{Struct} & 780K & 3,960 & 2,777 & 20.4 \\
 \textsc{Joint} & 780K & 3,960 & 4,073 & 21.5 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The structured model requires 4× the training time of the binary model (2,777 s
-vs.\ 805 s) due to the additional auxiliary heads, the multi-dataset loading,
-and two training epochs.
-Per-example inference latency increases by 3.5 ms (20.4 ms vs.\ 17.0 ms),
-which is negligible for batch inference.
-The checkpoint size increases substantially (3,960 MB vs.\ 4.3 MB) because
-the structured checkpoint stores all prediction heads and optimizer states.
-The PEFT-only delta (LoRA weights + heads) remains under 10 MB when isolated.
+The structured model requires $3.5\times$ the training time of \textsc{Bin-C}
+(2,777 s vs.\ 805 s); the joint model requires $5\times$ (4,073 s vs.\ 805 s),
+due to two epochs, the additional auxiliary heads, and multi-dataset loading.
+Per-example inference latency increases by 3.4 ms (20.4 ms vs.\ 17.0 ms).
+The checkpoint stores all prediction heads and optimizer states (3,960 MB); the
+PEFT-only delta (LoRA weights + heads) remains under 10 MB when isolated.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Discussion}
 \label{sec:discussion}
 
-\paragraph{Why do structured objectives improve functional robustness?}
-HateCheck tests are specifically designed to probe model \emph{understanding}
-rather than pattern matching.
-Predicting the type and target of hate during training forces the model to
-attend to semantic content—\textit{who} is targeted and \textit{how}—rather
-than correlating the presence of slurs or identity terms with the hate label.
-This is consistent with \citet{mathew2021hatexplain}, who found that
-rationale-supervised models were less susceptible to shortcut learning.
+\paragraph{Why are structured objectives associated with improved HateCheck?}
+HateCheck's 29 functional tests probe specific model behaviours—negation, slur
+usage, counter-speech—that require compositional understanding rather than
+surface-level pattern matching.
+One plausible account is that predicting hate type and target during training
+encourages the model to represent \emph{who} is targeted and \emph{how},
+reducing reliance on identity-term correlation as a proxy for hate.
+This is consistent with findings in \citet{mathew2021hatexplain}, where
+rationale-supervised models showed better calibration and lower shortcut
+susceptibility.
+However, our ablations do not cleanly isolate this mechanism: the structured
+model also uses a different head path (\texttt{FEAT\_EXTR}) and may benefit
+from identity-term alignment that coincidentally matches HateCheck's test
+distribution.
+We report the association without asserting a causal mechanism.
 
-\paragraph{Cross-benchmark transfer and consistency regularization.}
-The most notable single-objective gain on HateEval cross-benchmark transfer
-comes from pair-consistency regularization ($+2.7$ pp).
-DynaHate's contrastive pairs are explicitly constructed to be minimally
-different; the model that solves them must learn invariant representations
-that transfer beyond the training distribution.
-This mirrors findings in NLI literature where contrastive training improves
-out-of-distribution robustness \citep{gardner2020contrast}.
+\paragraph{Pair-consistency and cross-benchmark transfer.}
+The \textsc{+Cons} ablation shows the most improvement on HateEval cross-benchmark
+transfer ($+2.1$ pp over \textsc{Struct}) with no HateCheck gain.
+This pattern is consistent with the hypothesis that contrastive pair training
+encourages representations that generalise across domain shifts.
+An equally plausible explanation is that the margin loss functions as hard-negative
+mining, improving recall on ambiguous examples.
+Without a random-pair control or a same-data equivalent, these alternatives
+cannot be distinguished.
 
 \paragraph{PEFT variant choice.}
-The near-identical performance of LoRA, QLoRA, and DoRA on HateCheck
-validates the use of any LoRA-family method for this task.
-Given the practical memory savings of QLoRA with no measurable accuracy penalty,
-QLoRA is the recommended default for deployment in resource-constrained settings.
+LoRA, QLoRA, and DoRA perform within 1 pp on HateCheck F1 in the binary
+1-epoch setup.
+Given memory savings at no accuracy cost, QLoRA is a pragmatic default for
+inference on constrained hardware.
+Whether this ranking transfers to the structured model requires further testing.
 
 \paragraph{Limitations.}
-Our experiments focus exclusively on English-language hate speech.
-The structured prediction heads depend on DynaHate's annotation schema;
-transferring to datasets with different label taxonomies would require
-head adaptation.
-We evaluate a single backbone (TinyLlama-1.1B); larger or instruction-tuned
-backbones may interact differently with structured objectives.
-Calibration of the structured model (ECE 0.067) is worse than the binary
-comparison model (ECE 0.050), suggesting that auxiliary losses may introduce
-overconfidence on the main classification head that warrants further study.
-All results use a single seed (123); variance across seeds is not reported.
+\label{sec:limits}
+We identify the following gaps that prevent strong mechanistic conclusions:
+
+\begin{enumerate}
+  \item \textbf{Single seed.}
+    All results use seed 123; multi-seed variance is unreported.
+    Several deltas (e.g., $+0.8$ pp HateCheck for \textsc{Joint} over
+    \textsc{Struct}, $+0.0$ pp for \textsc{+Cons} on HateCheck) are small
+    enough that they may not be reproducible across initialisations.
+
+  \item \textbf{Head-path confound.}
+    Binary models use \texttt{SEQ\_CLS}; structured models use
+    \texttt{FEAT\_EXTR}.
+    The performance difference between \textsc{Bin-C} and \textsc{Struct}
+    is therefore \emph{not} a clean test of auxiliary supervision; a
+    same-path, single-head structured model is the missing control.
+
+  \item \textbf{Data and rationale confound.}
+    \textsc{+Rat} and \textsc{Joint} add HateXplain samples simultaneously with
+    rationale supervision.
+    Gains could come from more data, from the remapping of offensive→hate (which
+    changes the positive class), or from rationale token supervision.
+    A control that adds HateXplain examples but disables the rationale loss is
+    required to isolate the rationale effect.
+
+  \item \textbf{Consistency vs.\ hard-negative mining.}
+    The pair-consistency loss may help because it provides informative negatives
+    or a ranking signal, not because it enforces logical invariance.
+    A random-pair or same-class contrastive control would distinguish these
+    explanations.
+
+  \item \textbf{Explicitness label quality.}
+    The explicitness head uses a type-binarisation approximation.
+    Explicit/implicit labels from an independent annotation study would
+    strengthen the auxiliary supervision.
+
+  \item \textbf{English and TinyLlama only.}
+    Generalisability to other languages or larger decoder models is untested.
+
+  \item \textbf{Trainable-parameter reporting.}
+    The evaluation pipeline did not capture trainable parameter counts for binary
+    runs; Table~\ref{tab:efficiency} shows \emph{(not cap.)} for those rows.
+
+\end{enumerate}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Conclusion}
 \label{sec:conclusion}
 
-We demonstrated that augmenting binary PEFT fine-tuning with structured
-multi-task supervision—auxiliary prediction of hate type, target, and
-explicitness—substantially improves the functional robustness of a small
-decoder LM on HateCheck ($+10.6$ pp F1) and cross-benchmark transfer to
-HateEval ($+2.7$ pp F1 with consistency regularization).
-All improvements are achieved with 780K trainable parameters and within
-a 2$\times$ training time overhead.
-The PEFT variant comparison confirms that LoRA, QLoRA, and DoRA are
-interchangeable in this setting, with QLoRA recommended for
-memory-constrained deployment.
+We showed that structured multi-task supervision—predicting hate type, target, and
+explicitness in addition to the binary hate label—is empirically associated with
+modest improvements in functional robustness and cross-benchmark transfer when
+applied to a tiny decoder LM with LoRA-family PEFT.
+The controlled gain over a matched binary baseline is $+1.6$ pp on HateCheck F1
+and $+2.1$ pp on HateEval cross-benchmark transfer (with pair-consistency
+regularisation), using 780K trainable parameters and approximately $3.5\times$
+the training time of the binary model.
+The commonly cited $+10.6$ pp improvement reflects primarily the difference in
+training configuration between the legacy binary baseline and the structured model.
+A controlled PEFT comparison on a binary setup confirms LoRA, QLoRA, and DoRA
+are interchangeable, supporting quantized adapters for deployment.
+Key limitations include single-seed evaluation, partially confounded ablation
+controls, and an unverified explicitness annotation.
+Future work should add same-architecture controls, multi-seed analysis, and an
+extra-data-only condition to strengthen the causal story.
 We release the \method{} codebase with a unified evaluation CLI, calibration
-metrics, and all data loaders to support reproducibility and future work on
-structured lightweight hate detection.
+metrics, and all data loaders to support reproducibility and follow-up research.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section*{Acknowledgements}
@@ -534,9 +677,9 @@ structured lightweight hate detection.
 Dataset & Total & \% Hate & Language & Primary use \\
 \midrule
 DynaHate v0.2.3 & 41,144 & 54\% & EN & Train / eval \\
-HateEval (EN) & 9,000 & 42\% & EN & Cross-benchmark eval \\
+HateEval (EN) & $\sim$9,000 & 42\% & EN & Cross-benchmark eval \\
 HateXplain & 9,055 & 57\% & EN & Joint training (rationale) \\
-HateCheck & 3,728 & 54\% & EN & Robustness probe only \\
+HateCheck & 3,728 & 54\% & EN & Robustness probe (0-shot) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -562,33 +705,34 @@ Weight decay & 0.01 \\
 Batch size & 8 (per-device 2 + grad. accum. 4) \\
 Max sequence length & 512 \\
 Precision & FP16 \\
-Binary epochs & 1 \\
+Binary epochs & 1 (\textsc{Bin-L}); 2 (\textsc{Bin-C}) \\
 Structured epochs & 2 \\
 Best ckpt metric & Macro-F1 (dev) \\
-Seed & 123 \\
+Seed & 123 (single) \\
 GPU & NVIDIA A100-80GB \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{HateCheck Breakdown}
-\label{app:hatecheck}
+\section{PEFT Comparison: Detailed Results}
+\label{app:peft}
 
-Figure~\ref{fig:hatecheck_full} shows per-functionality F1 on HateCheck
-for the binary legacy model and the best structured model (\textsc{Joint}).
-The structured model improves on 26 of 29 functionalities; the largest
-absolute gains are on implied hate through reference ($+23$ pp),
-phrase-level negation ($+18$ pp), and identity-term counter-speech ($+16$ pp).
-The binary model still outperforms the structured model on two edge-case
-functionalities: non-offensive use of profanity and non-hate-speech about
-hate speech.
+Figure~\ref{fig:peft_hatecheck} shows the HateCheck binary F1 comparison
+for LoRA, QLoRA, and DoRA in the binary 1-epoch setup.
+All three adapters perform within 1 pp of each other; QLoRA slightly trails but
+reduces peak GPU memory by approximately 50\%.
+This comparison is not on the structured model; transferability to the
+structured setting is untested.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{../paper_figures/fig2_peft_hatecheck.pdf}
-\caption{PEFT variant comparison on HateCheck (binary F1 per variant).
-All three adapters perform within 1 pp of each other.}
-\label{fig:hatecheck_full}
+\caption{PEFT variant comparison on HateCheck (binary F1 per adapter type).
+All three variants perform within 1 pp; QLoRA offers the best
+efficiency–accuracy trade-off for deployment.
+Experiment uses binary \texttt{SEQ\_CLS} head, 1 training epoch on
+DynaHate, single seed.}
+\label{fig:peft_hatecheck}
 \end{figure}
 
 \end{document}
