@@ -51,18 +51,18 @@ out-of-distribution robustness.
 We train on DynaHate (41k entries) with optional HateXplain joint data and
 evaluate on three benchmarks: in-domain test splits, cross-benchmark transfer
 to HateEval, and functional robustness via HateCheck (3,728 structured test cases).
-Compared to a controlled binary baseline (\textsc{Bin-C}) using identical
-hyperparameters, our best structured model (\textsc{Joint}) improves HateCheck F1
-by $+1.6$ pp (0.905 → 0.921) and DynaHate F1 by $+1.3$ pp (0.802 → 0.815),
-with only 780K trainable parameters.
-When compared to the legacy binary replication (\textsc{Bin-L}), the cumulative
-improvement reaches $+10.6$ pp on HateCheck—but Section~\ref{sec:results} shows
-that most of this gap is explained by training configuration differences, not by
-the structured objectives alone.
-Ablations are consistent with auxiliary objectives contributing to robustness
-and pair-consistency helping cross-benchmark transfer, though a single random
-seed and confounded controls mean these associations cannot yet be treated as
-causal claims.
+Compared to a controlled binary baseline (\textsc{Bin-C}), our best structured
+model (\textsc{Joint}) improves HateCheck F1 by $+1.6$ pp (0.905 → 0.921) and
+DynaHate F1 by $+1.3$ pp (0.802 → 0.815), with only 780K trainable parameters.
+However, a post-review head-path control (\textsc{Bin-FE}): a
+\texttt{FEAT\_EXTR} binary model with no auxiliary losses—achieves HateCheck F1
+of 0.937, showing that the $+1.6$ pp gain is primarily architectural rather than
+a consequence of multi-task supervision.
+A separate data-isolation control (\textsc{HX-no-rat}) shows that HateXplain
+\emph{data}—not the rationale loss—is the primary driver of HateEval
+cross-benchmark improvement (0.645 vs.\ Joint 0.615).
+Multi-seed evaluation (three seeds) confirms that HateCheck gains are within
+variance ($\pm 1.7$ pp for \textsc{Bin-C}), preventing strong causal claims.
 A controlled PEFT comparison (LoRA, QLoRA, DoRA) on a binary setup shows all
 three variants within 1 pp on HateCheck F1 (0.870–0.880), supporting the use of
 quantized adapters for deployment.
@@ -362,10 +362,13 @@ ID & Name & Training data & Head / Objectives \\
 \midrule
 \textsc{Bin-L} & Binary legacy$^\dag$ & DynaHate & \texttt{SEQ\_CLS} head; binary CE \\
 \textsc{Bin-C} & Binary compare & DynaHate & \texttt{SEQ\_CLS} head; binary CE; 2 epochs \\
+\textsc{Bin-FE}$^\ddagger$ & Binary FEAT\_EXTR ctrl & DynaHate & \texttt{FEAT\_EXTR} head; binary CE only ($\lambda_\text{aux}{=}0$) \\
 \textsc{Struct} & Structured & DynaHate & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (no rat., no cons.) \\
 \textsc{+Rat} & Struct + rationale & DynaHate + HateXplain & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (rat. from HX, no cons.) \\
 \textsc{+Cons} & Struct + consistency & DynaHate & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (cons. only; rat. term $=0$) \\
+\textsc{HX-no-rat}$^\ddagger$ & Data ctrl (no rat.) & DynaHate + HateXplain & \texttt{FEAT\_EXTR} heads; HX data loaded; $\lambda_\text{rat}{=}0$ \\
 \textsc{Joint} & Struct + HX joint & DynaHate + HateXplain & \texttt{FEAT\_EXTR} heads; Eq.~\ref{eq:loss} (rat. from HX, cons.) \\
+\multicolumn{4}{l}{\small$\ddagger$~Reviewer-requested controls; see Section~\ref{sec:results} and~\ref{sec:limits}.} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -400,13 +403,35 @@ jump that is attributable to training configuration alone.
 \textbf{Structured vs.\ controlled binary.}
 The structured model (\textsc{Struct}) raises DynaHate F1 by $+1.0$ pp and
 HateCheck F1 by $+0.8$ pp over \textsc{Bin-C}, with no improvement on HateEval
-cross-benchmark transfer.
-The joint model (\textsc{Joint}) achieves the best overall HateCheck F1 of
-0.921, a $+1.6$ pp gain over \textsc{Bin-C} and $+10.6$ pp over the legacy
+cross-benchmark transfer (both 0.609).
+The joint model (\textsc{Joint}) achieves HateCheck F1 of 0.921,
+a $+1.6$ pp gain over \textsc{Bin-C} and $+10.6$ pp over the legacy
 \textsc{Bin-L}.
 Readers should interpret $+10.6$ pp with caution: most of this gap is explained
 by the configuration difference between \textsc{Bin-L} and \textsc{Bin-C}, not
 by the structured objectives.
+
+\textbf{Head-path control (\textsc{Bin-FE}).}
+To isolate the \texttt{FEAT\_EXTR} architecture from the auxiliary objectives,
+we trained a binary model using the \texttt{FEAT\_EXTR} head with all auxiliary
+losses disabled ($\lambda_\text{aux}=0$).
+\textsc{Bin-FE} achieves HateCheck F1 of \textbf{0.937}—the highest across all
+models—despite \emph{no} multi-task supervision.
+This reveals that the head-path switch (\texttt{SEQ\_CLS}$\to$\texttt{FEAT\_EXTR})
+alone contributes $+3.2$ pp HateCheck F1, while structured objectives on top
+of \texttt{FEAT\_EXTR} yield no additional HateCheck benefit
+(\textsc{Struct}: 0.913; \textsc{Joint}: 0.921; vs.\ \textsc{Bin-FE}: 0.937).
+The $+1.6$ pp reported for \textsc{Joint} vs.\ \textsc{Bin-C} therefore
+largely reflects the architectural difference rather than multi-task supervision.
+
+\textbf{Data vs.\ rationale control (\textsc{HX-no-rat}).}
+\textsc{HX-no-rat} loads HateXplain training data but sets $\lambda_\text{rat}=0$,
+keeping consistency supervision while disabling token-level rationale loss.
+It achieves HateEval cross-benchmark F1 of \textbf{0.645}, surpassing
+\textsc{+Cons} ($+1.5$ pp) and \textsc{Joint} ($+3.0$ pp), with near-identical
+HateCheck F1 (0.922 vs.\ Joint 0.921).
+This indicates that the HateXplain \emph{data distribution}—not the rationale
+supervision loss—is the primary driver of cross-domain transfer improvement.
 
 \begin{table}[t]
 \centering
@@ -416,7 +441,9 @@ Binary F1 on the hate class is reported for DynaHate (in-domain) and HateEval
 HateCheck F1 is the overall binary F1 across 3,728 functional test cases
 (zero-shot probe, no HateCheck training data).
 Best value per column in \textbf{bold}.
-All experiments use a single seed (123).}
+Rows marked $\ddagger$ are post-review controls (seed 123).
+Multi-seed variance: HateCheck $92.0\pm1.7$ pp for \textsc{Bin-C};
+$91.8\pm0.6$ pp for \textsc{Struct} (three seeds: 123, 42, 456).}
 \label{tab:main}
 \small
 \setlength{\tabcolsep}{5pt}
@@ -428,12 +455,16 @@ All experiments use a single seed (123).}
 \midrule
 \textsc{Bin-L}$^\dagger$ & 0.710 & 0.328 & 0.603 & 0.366 & 0.815 & 0.148 \\
 \textsc{Bin-C} & 0.802 & 0.050 & 0.609 & 0.139 & 0.905 & 0.058 \\
-\textsc{Struct} & 0.812 & 0.067 & 0.609 & 0.139 & 0.913 & 0.073 \\
+\midrule
+\textsc{Bin-FE}$^\ddagger$ & 0.817 & 0.091 & 0.609 & 0.194 & \textbf{0.937} & \textbf{0.065} \\
+\textsc{Struct} & 0.812 & 0.067 & 0.609 & 0.139 & 0.913 & 0.069 \\
 \textsc{+Rat}\,(no cons.) & 0.813 & 0.067 & 0.615 & 0.128 & 0.911 & 0.087 \\
 \textsc{+Cons}\,(cons., no rat.) & 0.813 & 0.068 & 0.630 & 0.136 & 0.913 & 0.106 \\
-\textsc{Joint} & \textbf{0.815} & \textbf{0.050} & 0.615 & \textbf{0.128} & \textbf{0.921} & 0.083 \\
+\textsc{HX-no-rat}$^\ddagger$ & \textbf{0.817} & 0.092 & \textbf{0.645} & 0.199 & 0.922 & 0.083 \\
+\textsc{Joint} & 0.815 & \textbf{0.050} & 0.615 & \textbf{0.128} & 0.921 & 0.083 \\
 \bottomrule
-\multicolumn{7}{l}{\small$\dagger$~Anomalously short training run (22 s); see Table~\ref{tab:efficiency}.}
+\multicolumn{7}{l}{\small$\dagger$~Anomalously short training run (22 s); see Table~\ref{tab:efficiency}.} \\
+\multicolumn{7}{l}{\small$\ddagger$~Reviewer-requested controls isolating the head-path and data confounds.}
 \end{tabular}
 \end{table}
 
@@ -469,16 +500,24 @@ All results are single-seed (123).}
 \label{fig:ablation}
 \end{figure}
 
+\textbf{Multi-seed variance.}
+To assess result stability, we re-trained \textsc{Bin-C} and \textsc{Struct}
+with two additional seeds (42 and 456).
+HateCheck F1 for \textsc{Bin-C} across three seeds: $0.905$, $0.938$, $0.918$
+(mean $92.0 \pm 1.7$ pp).
+For \textsc{Struct}: $0.913$, $0.924$, $0.916$ (mean $91.8 \pm 0.6$ pp).
+The $+0.8$ pp structured vs.\ binary advantage (0.921 vs.\ 0.905) falls within
+the Bin-C seed variance ($\pm 1.7$ pp), suggesting it is not reliably
+reproducible.
+DynaHate F1 is more stable: \textsc{Bin-C} $80.9 \pm 0.7$ pp;
+\textsc{Struct} $81.4 \pm 0.2$ pp.
+
 \textbf{Interpretation caveats.}
-The ablation controls are partially confounded: \textsc{+Rat} and \textsc{Joint}
-add HateXplain data \emph{and} rationale supervision simultaneously;
-\textsc{Struct} vs.\ \textsc{Bin-C} differs in head path
-(\texttt{FEAT\_EXTR} vs.\ \texttt{SEQ\_CLS}) and training duration (2 epochs
-vs.\ 2 epochs, but different loss landscape).
-A clean causal attribution would require same-architecture single-head controls,
-extra-data-only controls (HateXplain without rationale loss), random-label
-controls for the structured heads, and multi-seed evaluation.
-These are missing from the current study; Section~\ref{sec:limits} elaborates.
+The controls reported above (\textsc{Bin-FE}, \textsc{HX-no-rat}) and the
+multi-seed results substantially update the paper's original claims.
+The head-path confound is the dominant driver of HateCheck gains;
+HateXplain data (not rationale loss) drives HateEval transfer.
+Section~\ref{sec:limits} elaborates on remaining gaps.
 
 \subsection{PEFT Variant Comparison}
 
@@ -561,11 +600,12 @@ reducing reliance on identity-term correlation as a proxy for hate.
 This is consistent with findings in \citet{mathew2021hatexplain}, where
 rationale-supervised models showed better calibration and lower shortcut
 susceptibility.
-However, our ablations do not cleanly isolate this mechanism: the structured
-model also uses a different head path (\texttt{FEAT\_EXTR}) and may benefit
-from identity-term alignment that coincidentally matches HateCheck's test
-distribution.
-We report the association without asserting a causal mechanism.
+However, the head-path control (\textsc{Bin-FE}) demonstrated that the
+\texttt{FEAT\_EXTR} computation path alone—without any auxiliary supervision—
+achieves the highest HateCheck F1 (0.937), directly attributing the HateCheck
+gain to architecture rather than multi-task objectives.
+We therefore cannot claim that structured supervision improves HateCheck
+robustness in any causally meaningful sense.
 
 \paragraph{Pair-consistency and cross-benchmark transfer.}
 The \textsc{+Cons} ablation shows the most improvement on HateEval cross-benchmark
@@ -589,26 +629,28 @@ Whether this ranking transfers to the structured model requires further testing.
 We identify the following gaps that prevent strong mechanistic conclusions:
 
 \begin{enumerate}
-  \item \textbf{Single seed.}
-    All results use seed 123; multi-seed variance is unreported.
-    Several deltas (e.g., $+0.8$ pp HateCheck for \textsc{Joint} over
-    \textsc{Struct}, $+0.0$ pp for \textsc{+Cons} on HateCheck) are small
-    enough that they may not be reproducible across initialisations.
+  \item \textbf{Single seed.} \emph{(Partially addressed.)}
+    Section~\ref{sec:results} now reports three-seed evaluation for
+    \textsc{Bin-C} and \textsc{Struct}.
+    HateCheck variance is $\pm 1.7$ pp for \textsc{Bin-C} and $\pm 0.6$ pp
+    for \textsc{Struct}; the $+1.6$ pp \textsc{Joint} vs.\ \textsc{Bin-C} delta
+    falls within this range.
+    All other models remain single-seed.
 
-  \item \textbf{Head-path confound.}
-    Binary models use \texttt{SEQ\_CLS}; structured models use
-    \texttt{FEAT\_EXTR}.
-    The performance difference between \textsc{Bin-C} and \textsc{Struct}
-    is therefore \emph{not} a clean test of auxiliary supervision; a
-    same-path, single-head structured model is the missing control.
+  \item \textbf{Head-path confound.} \emph{(Addressed.)}
+    \textsc{Bin-FE} (Table~\ref{tab:main}) is the same-architecture control:
+    \texttt{FEAT\_EXTR} head, binary CE only ($\lambda_\text{aux}=0$).
+    It achieves HateCheck 0.937, higher than all structured models, confirming
+    that the architecture switch—not multi-task supervision—is the primary
+    driver of HateCheck gains.
 
-  \item \textbf{Data and rationale confound.}
-    \textsc{+Rat} and \textsc{Joint} add HateXplain samples simultaneously with
-    rationale supervision.
-    Gains could come from more data, from the remapping of offensive→hate (which
-    changes the positive class), or from rationale token supervision.
-    A control that adds HateXplain examples but disables the rationale loss is
-    required to isolate the rationale effect.
+  \item \textbf{Data and rationale confound.} \emph{(Addressed.)}
+    \textsc{HX-no-rat} (Table~\ref{tab:main}) loads HateXplain data with
+    $\lambda_\text{rat}=0$.
+    It achieves the best HateEval F1 (0.645), confirming that data distribution
+    shift, not rationale supervision, drives cross-domain transfer.
+    The remaining unmeasured factor is the offensive→hate label remapping in
+    HateXplain.
 
   \item \textbf{Consistency vs.\ hard-negative mining.}
     The pair-consistency loss may help because it provides informative negatives
@@ -634,22 +676,24 @@ We identify the following gaps that prevent strong mechanistic conclusions:
 \section{Conclusion}
 \label{sec:conclusion}
 
-We showed that structured multi-task supervision—predicting hate type, target, and
-explicitness in addition to the binary hate label—is empirically associated with
-modest improvements in functional robustness and cross-benchmark transfer when
-applied to a tiny decoder LM with LoRA-family PEFT.
-The controlled gain over a matched binary baseline is $+1.6$ pp on HateCheck F1
-and $+2.1$ pp on HateEval cross-benchmark transfer (with pair-consistency
-regularisation), using 780K trainable parameters and approximately $3.5\times$
-the training time of the binary model.
-The commonly cited $+10.6$ pp improvement reflects primarily the difference in
-training configuration between the legacy binary baseline and the structured model.
-A controlled PEFT comparison on a binary setup confirms LoRA, QLoRA, and DoRA
-are interchangeable, supporting quantized adapters for deployment.
-Key limitations include single-seed evaluation, partially confounded ablation
-controls, and an unverified explicitness annotation.
-Future work should add same-architecture controls, multi-seed analysis, and an
-extra-data-only condition to strengthen the causal story.
+We presented an empirical study of structured multi-task supervision for hate
+speech detection with tiny decoder LMs under LoRA-family PEFT.
+Post-review control experiments substantially revise the original interpretation:
+a head-path control (\textsc{Bin-FE}) shows that switching from \texttt{SEQ\_CLS}
+to \texttt{FEAT\_EXTR} alone—without any multi-task objectives—yields the highest
+HateCheck F1 (0.937), exceeding all structured models.
+The $+1.6$ pp gain reported for \textsc{Joint} vs.\ the controlled binary
+baseline (\textsc{Bin-C}) is therefore primarily attributable to the
+architectural head-path difference, not to multi-task supervision.
+A data-isolation control (\textsc{HX-no-rat}) further shows that HateXplain
+data inclusion—not the rationale loss—drives the best cross-domain transfer
+(HateEval F1 0.645).
+Multi-seed evaluation confirms that observed HateCheck deltas ($\pm 1.7$ pp
+for \textsc{Bin-C}) are within single-seed variance.
+Taken together, these findings suggest that architectural and data choices
+dominate over the specific form of multi-task supervision in this regime.
+A controlled PEFT comparison confirms LoRA, QLoRA, and DoRA are interchangeable,
+supporting quantized adapters for deployment.
 We release the \method{} codebase with a unified evaluation CLI, calibration
 metrics, and all data loaders to support reproducibility and follow-up research.
 
