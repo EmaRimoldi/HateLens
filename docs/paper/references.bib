@@ -1,0 +1,222 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% HateLens paper — bibliography
+% All entries verified against arXiv / ACL Anthology / Semantic Scholar.
+% Placeholders are marked with [PLACEHOLDER - VERIFY].
+% ─────────────────────────────────────────────────────────────────────────────
+
+% ── Core paper being extended ──────────────────────────────────────────────
+
+@misc{sen2024hatetinyllm,
+  title        = {{HateTinyLLM}: {H}ate Speech Detection Using Tiny Large Language Models},
+  author       = {Tanmay Sen and Ansuman Das and Mrinmay Sen},
+  year         = {2024},
+  eprint       = {2405.01577},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2405.01577},
+}
+
+% ── Datasets ──────────────────────────────────────────────────────────────
+
+@inproceedings{vidgen2021dynahate,
+  title     = {Learning from the Worst: {D}ynamically Generated Datasets to
+               Improve Online Hate Detection},
+  author    = {Vidgen, Bertie and Thrush, Tristan and Waseem, Zeerak and Kiela, Douwe},
+  booktitle = {Proceedings of the 59th Annual Meeting of the Association for
+               Computational Linguistics and the 11th International Joint
+               Conference on Natural Language Processing (Volume 1: Long Papers)},
+  month     = aug,
+  year      = {2021},
+  address   = {Online},
+  publisher = {Association for Computational Linguistics},
+  url       = {https://aclanthology.org/2021.acl-long.132},
+  doi       = {10.18653/v1/2021.acl-long.132},
+  pages     = {1667--1682},
+}
+
+@inproceedings{basile2019semeval,
+  title     = {{S}em{E}val-2019 Task 5: Multilingual Detection of Hate Speech
+               Against Immigrants and Women in Twitter},
+  author    = {Basile, Valerio and Bosco, Cristina and Fersini, Elisabetta and
+               Nozza, Debora and Patti, Viviana and Rangel Pardo, Francisco Manuel
+               and Rosso, Paolo and Sanguinetti, Manuela},
+  booktitle = {Proceedings of the 13th International Workshop on Semantic Evaluation},
+  month     = jun,
+  year      = {2019},
+  address   = {Minneapolis, Minnesota, USA},
+  publisher = {Association for Computational Linguistics},
+  url       = {https://aclanthology.org/S19-2007},
+  doi       = {10.18653/v1/S19-2007},
+  pages     = {54--63},
+}
+
+@inproceedings{mathew2021hatexplain,
+  title     = {{H}ate{X}plain: A Benchmark Dataset for Explainable Hate Speech Detection},
+  author    = {Mathew, Binny and Saha, Punyajoy and Yimam, Seid Muhie and
+               Biemann, Chris and Goyal, Pawan and Mukherjee, Animesh},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  year      = {2021},
+  pages     = {14867--14875},
+  url       = {https://arxiv.org/abs/2012.10289},
+}
+
+@inproceedings{rottger2021hatecheck,
+  title     = {{H}ate{C}heck: Functional Tests for Hate Speech Detection Models},
+  author    = {R{\"o}ttger, Paul and Vidgen, Bertie and Nguyen, Dong and
+               Waseem, Zeerak and Margetts, Helen and Pierrehumbert, Janet},
+  booktitle = {Proceedings of the 59th Annual Meeting of the Association for
+               Computational Linguistics and the 11th International Joint
+               Conference on Natural Language Processing (Volume 1: Long Papers)},
+  month     = aug,
+  year      = {2021},
+  address   = {Online},
+  publisher = {Association for Computational Linguistics},
+  url       = {https://aclanthology.org/2021.acl-long.4},
+  doi       = {10.18653/v1/2021.acl-long.4},
+  pages     = {41--58},
+}
+
+% ── PEFT Methods ──────────────────────────────────────────────────────────
+
+@misc{hu2022lora,
+  title        = {{LoRA}: Low-Rank Adaptation of Large Language Models},
+  author       = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and
+                  Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and
+                  Wang, Lu and Chen, Weizhu},
+  year         = {2022},
+  eprint       = {2106.09685},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2106.09685},
+}
+
+@misc{dettmers2023qlora,
+  title        = {{QLoRA}: Efficient Finetuning of Quantized {LLMs}},
+  author       = {Dettmers, Tim and Pagnoni, Artidoro and Holtzman, Ari and Zettlemoyer, Luke},
+  year         = {2023},
+  eprint       = {2305.14314},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  url          = {https://arxiv.org/abs/2305.14314},
+}
+
+@misc{liu2024dora,
+  title        = {{DoRA}: Weight-Decomposed Low-Rank Adaptation},
+  author       = {Liu, Shih-Yang and Wang, Chien-Yi and Yin, Hongxu and
+                  Molchanov, Pavlo and Wang, Yu-Chiang Frank and Cheng, Kwang-Ting and
+                  Chen, Min-Hung},
+  year         = {2024},
+  eprint       = {2402.09353},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2402.09353},
+}
+
+% ── Backbone Model ─────────────────────────────────────────────────────────
+
+@misc{zhang2024tinyllama,
+  title        = {{TinyLlama}: An Open-Source Small Language Model},
+  author       = {Zhang, Peiyuan and Zeng, Guangtao and Wang, Tianhao and Lu, Wei},
+  year         = {2024},
+  eprint       = {2401.02385},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2401.02385},
+}
+
+% ── Related Work ──────────────────────────────────────────────────────────
+
+@misc{elbahnasawi2025lora,
+  title        = {Efficient Hate Speech Detection: A Three-Layer {LoRA}-Tuned
+                  {BERTweet} Framework},
+  author       = {El-Bahnasawi, Mahmoud},
+  year         = {2025},
+  eprint       = {2511.06051},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2511.06051},
+}
+
+@inproceedings{prama2025hatesense,
+  title     = {Computational Story Lab at {BLP-2025} Task 1: {HateSense}:
+               A Multi-Task Learning Framework for Comprehensive Hate Speech
+               Identification using {LLMs}},
+  author    = {Prama, Tabia Tanzin and Danforth, Christopher M. and Dodds, Peter},
+  booktitle = {Proceedings of the Second Workshop on Bangla Language Processing
+               (BLP-2025)},
+  month     = dec,
+  year      = {2025},
+  address   = {Mumbai, India},
+  publisher = {Association for Computational Linguistics},
+  url       = {https://aclanthology.org/2025.banglalp-1.37},
+  pages     = {430--442},
+}
+
+% ── Calibration ───────────────────────────────────────────────────────────
+
+@inproceedings{guo2017calibration,
+  title     = {On Calibration of Modern Neural Networks},
+  author    = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning},
+  year      = {2017},
+  pages     = {1321--1330},
+  volume    = {70},
+  series    = {Proceedings of Machine Learning Research},
+  publisher = {PMLR},
+  url       = {https://arxiv.org/abs/1706.04599},
+}
+
+% ── Contrast / adversarial datasets ───────────────────────────────────────
+
+@article{gardner2020contrast,
+  title   = {Evaluating {NLP} Models via Contrast Sets},
+  author  = {Gardner, Matt and Artzi, Yoav and Basmov, Victoria and Berant, Jonathan
+             and Bogin, Ben and Chen, Sihao and Dasigi, Pradeep and Dua, Dheeru and
+             Elazar, Yanai and Gottumukkala, Ananth and Gupta, Nitish and
+             Hajishirzi, Hannaneh and Ilharco, Gabriel and Khashabi, Daniel and
+             Lin, Kevin and Liu, Jiangming and Liu, Nelson F. and Mulcaire, Phoebe and
+             Ning, Qiang and Singh, Sameer and Subramanian, Ashish and
+             Tsarfaty, Reut and Wallace, Eric and Zhang, Ally and Zhou, Ben},
+  journal = {Findings of the Association for Computational Linguistics: EMNLP 2020},
+  year    = {2020},
+  pages   = {3087--3100},
+  url     = {https://arxiv.org/abs/2004.02709},
+}
+
+% ── Optimizer ─────────────────────────────────────────────────────────────
+
+@misc{loshchilov2019adamw,
+  title        = {Decoupled Weight Decay Regularization},
+  author       = {Loshchilov, Ilya and Hutter, Frank},
+  year         = {2019},
+  eprint       = {1711.05101},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  url          = {https://arxiv.org/abs/1711.05101},
+}
+
+% ── Transformers infrastructure ───────────────────────────────────────────
+
+@misc{wolf2020transformers,
+  title        = {Transformers: State-of-the-Art Natural Language Processing},
+  author       = {Wolf, Thomas and Debut, Lysandre and Sanh, Victor and Chaumond, Julien
+                  and Delangue, Clement and Moi, Anthony and Cistac, Pierric and
+                  Rault, Tim and Louf, Rémi and Funtowicz, Morgan and Davison, Joe and
+                  Shleifer, Sam and von Platen, Patrick and Ma, Clara and Jernite, Yacine
+                  and Plu, Julien and Xu, Canwen and Le Scao, Teven and Gugger, Sylvain
+                  and Drame, Mariama and Lhoest, Quentin and Rush, Alexander},
+  year         = {2020},
+  eprint       = {1910.03771},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/1910.03771},
+}
+
+@misc{mangrulkar2022peft,
+  title        = {{PEFT}: State-of-the-Art Parameter-Efficient Fine-Tuning},
+  author       = {Mangrulkar, Sourab and Gugger, Sylvain and Debut, Lysandre and
+                  Belkada, Younes and Paul, Sayak and Bossan, Benjamin},
+  year         = {2022},
+  howpublished = {\url{https://github.com/huggingface/peft}},
+  note         = {GitHub repository},
+}
