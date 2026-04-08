@@ -75,7 +75,7 @@ run_eval outputs/runs/tinyllama/structured_dynahate_bin_feat_extr/best_checkpoin
   --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
 
 # Control 2: HateXplain data + consistency, rationale loss disabled — isolates data vs. rationale
-run_eval outputs/runs/tinyllama/structured_dynahate_hx_no_rationale/best_checkpoint exp_ctrl_hx_no_rationale \
+run_eval outputs/runs/tinyllama/structured_dynahate_hatexplain_hx_no_rationale/best_checkpoint exp_ctrl_hx_no_rationale \
   --in-domain dynahate hateeval --cross dynahate_hatexplain:hateeval --hatecheck --rationale --rationale-max-samples 128
 
 # ── Multi-seed replicates (Bin-C and Struct) ──────────────────────────────────
