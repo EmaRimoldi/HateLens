@@ -1,0 +1,4 @@
+source,total_parameters,trainable_parameters,checkpoint_size_bytes,checkpoint_dir,train_runtime_seconds,inference_latency_ms_batch1,inference_throughput_samples_per_s_batch_gt1,peak_memory_bytes_cuda
+exp_g6_peft_lora,1034516480,0,6903155,/orcd/home/002/erimoldi/projects/HateLens/outputs/runs/tinyllama_peft_lora/dynahate/best_checkpoint,940.9656,17.097066342830658,126.3914315291409,4149502976
+exp_g6_peft_qlora,1034516480,0,6903155,/orcd/home/002/erimoldi/projects/HateLens/outputs/runs/tinyllama_qlora/dynahate/best_checkpoint,4966.4498,16.499502025544643,130.78255897552708,4149502976
+exp_g6_peft_dora,1034516480,0,6954194,/orcd/home/002/erimoldi/projects/HateLens/outputs/runs/tinyllama_dora/dynahate/best_checkpoint,1051.9979,17.161783576011658,127.4878908437458,4149502976

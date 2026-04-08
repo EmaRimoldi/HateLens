@@ -1,0 +1,40 @@
+{
+  "scope": "Binary vs structured hate detection with TinyLlama+LoRA; multi-task structured heads; rationale and pair-consistency ablations; DynaHate+HateXplain joint training; cross-benchmark (HateEval) and HateCheck robustness; PEFT variant sanity (LoRA vs QLoRA vs DoRA).",
+  "main_comparison": {
+    "binary_legacy": {
+      "dynahate_f1": 0.7098794426178174,
+      "hateeval_f1": 0.6025824964131994,
+      "hatecheck_f1": 0.8149324861000794
+    },
+    "binary_compare": {
+      "dynahate_f1": 0.8015547397970201,
+      "hateeval_f1": 0.6088794926004228,
+      "hatecheck_f1": 0.9048473967684022
+    },
+    "structured": {
+      "dynahate_f1": 0.8121893235357683,
+      "hateeval_f1": 0.6085011185682326,
+      "hatecheck_f1": 0.9127272727272727
+    },
+    "ablation_no_rationale": {
+      "dynahate_f1": 0.8125807841447652,
+      "hateeval_f1": 0.6150442477876106,
+      "hatecheck_f1": 0.9112534309240622
+    },
+    "ablation_consistency": {
+      "dynahate_f1": 0.812987012987013,
+      "hateeval_f1": 0.6299559471365639,
+      "hatecheck_f1": 0.9125338142470695
+    },
+    "structured_dh_hatexplain": {
+      "dynahate_f1": 0.8145519077196096,
+      "hateeval_f1": 0.6147368421052631,
+      "hatecheck_f1": 0.9208371246587808
+    }
+  },
+  "peft_hatecheck_f1": {
+    "LoRA": 0.8775692582663092,
+    "QLoRA": 0.8697247706422019,
+    "DoRA": 0.8804920913884007
+  }
+}
