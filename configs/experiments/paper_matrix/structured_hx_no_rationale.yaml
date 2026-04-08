@@ -1,0 +1,42 @@
+# Reviewer control 2: HateXplain data included (same as Joint), but rationale
+# supervision disabled (rationale_loss_weight=0 / use_rationale=false).
+# This isolates whether gains in Joint come from MORE DATA / label remapping
+# vs. the rationale token supervision specifically.
+# Compare against: exp_structured_dh_hx (Joint, full rationale+consistency)
+# Output: outputs/runs/tinyllama/structured_dynahate_hx_no_rationale/best_checkpoint
+
+training_mode: "structured"
+structured_output_suffix: "_hx_no_rationale"
+task_type: "FEATURE_EXTRACTION"
+peft_type: "lora"
+r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - "k_proj"
+  - "v_proj"
+
+quantization: "none"
+max_length: 512
+use_rationale: false        # <-- key: HX data loaded but rationale loss = 0
+use_consistency: true       # consistency kept to match Joint as closely as possible
+aux_loss_weight: 0.5
+rationale_loss_weight: 0.0  # <-- key: zero out rationale term
+consistency_loss_weight: 0.2
+
+output_dir: "outputs/runs/tinyllama"
+learning_rate: 0.0002
+num_train_epochs: 2
+weight_decay: 0.01
+logging_dir: "outputs/logs/tinyllama"
+logging_steps: 50
+metric_for_best_model: "f1_macro"
+seed: 123
+model_checkpoint: "PY007/TinyLlama-1.1B-step-50K-105b"
+model_name: "TinyLlama-HXNoRat"
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 4
+fp16: true
+save_total_limit: 2

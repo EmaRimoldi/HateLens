@@ -69,4 +69,26 @@ run_eval outputs/runs/tinyllama_qlora/dynahate/best_checkpoint exp_g6_peft_qlora
 run_eval outputs/runs/tinyllama_dora/dynahate/best_checkpoint exp_g6_peft_dora \
   --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
 
+# ── Reviewer controls (added post-review) ────────────────────────────────────
+# Control 1: FEAT_EXTR head path, no aux loss — isolates architecture vs. aux objectives
+run_eval outputs/runs/tinyllama/structured_dynahate_bin_feat_extr/best_checkpoint exp_ctrl_bin_feat_extr \
+  --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
+
+# Control 2: HateXplain data + consistency, rationale loss disabled — isolates data vs. rationale
+run_eval outputs/runs/tinyllama/structured_dynahate_hx_no_rationale/best_checkpoint exp_ctrl_hx_no_rationale \
+  --in-domain dynahate hateeval --cross dynahate_hatexplain:hateeval --hatecheck --rationale --rationale-max-samples 128
+
+# ── Multi-seed replicates (Bin-C and Struct) ──────────────────────────────────
+run_eval outputs/runs/tinyllama_binary_compare_s42/dynahate/best_checkpoint exp_binc_s42 \
+  --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
+
+run_eval outputs/runs/tinyllama_binary_compare_s456/dynahate/best_checkpoint exp_binc_s456 \
+  --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
+
+run_eval outputs/runs/tinyllama/structured_dynahate_s42/best_checkpoint exp_struct_s42 \
+  --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
+
+run_eval outputs/runs/tinyllama/structured_dynahate_s456/best_checkpoint exp_struct_s456 \
+  --in-domain dynahate hateeval --cross dynahate:hateeval hateeval:dynahate --hatecheck
+
 echo "Eval bundle finished job $SLURM_JOB_ID"

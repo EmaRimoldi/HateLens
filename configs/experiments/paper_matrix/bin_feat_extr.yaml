@@ -1,0 +1,41 @@
+# Reviewer control 1: same FEATURE_EXTRACTION head path as structured models,
+# but with ALL auxiliary losses disabled (aux_loss_weight=0).
+# This isolates whether the SEQ_CLS -> FEAT_EXTR architecture switch itself
+# contributes to the Bin-C -> Struct performance delta.
+# Output: outputs/runs/tinyllama/structured_dynahate_bin_feat_extr/best_checkpoint
+
+training_mode: "structured"
+structured_output_suffix: "_bin_feat_extr"
+task_type: "FEATURE_EXTRACTION"
+peft_type: "lora"
+r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - "k_proj"
+  - "v_proj"
+
+quantization: "none"
+max_length: 512
+use_rationale: false
+use_consistency: false
+aux_loss_weight: 0.0        # <-- key: disables type/target/explicitness heads
+rationale_loss_weight: 0.0
+consistency_loss_weight: 0.0
+
+output_dir: "outputs/runs/tinyllama"
+learning_rate: 0.0002
+num_train_epochs: 2
+weight_decay: 0.01
+logging_dir: "outputs/logs/tinyllama"
+logging_steps: 50
+metric_for_best_model: "f1_macro"
+seed: 123
+model_checkpoint: "PY007/TinyLlama-1.1B-step-50K-105b"
+model_name: "TinyLlama-BinFeatExtr"
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 4
+fp16: true
+save_total_limit: 2

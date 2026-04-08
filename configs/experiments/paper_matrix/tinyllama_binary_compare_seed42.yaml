@@ -1,0 +1,29 @@
+# Bin-C replicate — seed 42. Identical to tinyllama_binary_compare.yaml except seed.
+# Output: outputs/runs/tinyllama_binary_compare_s42/
+
+task_type: "SEQ_CLS"
+peft_type: "lora"
+r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - "k_proj"
+  - "v_proj"
+
+quantization: "none"
+output_dir: "outputs/runs/tinyllama_binary_compare_s42"
+learning_rate: 0.0002
+num_train_epochs: 2
+weight_decay: 0.01
+logging_dir: "outputs/logs/tinyllama_binary_compare_s42"
+logging_steps: 50
+metric_for_best_model: "f1"
+seed: 42
+model_checkpoint: "PY007/TinyLlama-1.1B-step-50K-105b"
+model_name: "TinyLlama"
+
+per_device_train_batch_size: 4
+per_device_eval_batch_size: 4
+gradient_accumulation_steps: 4
+fp16: true
+save_total_limit: 2
